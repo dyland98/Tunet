@@ -3096,11 +3096,7 @@ export default function EditCardModal({
               <div className="space-y-2">
                 {(Array.isArray(editSettings.roomScripts) ? editSettings.roomScripts : []).map(
                   (entry, index) => (
-                    <div
-                      key={`room-script-${index}`}
-                      className="popup-surface rounded-2xl p-3"
-                      style={{ backgroundColor: 'var(--glass-bg)' }}
-                    >
+                    <div key={`room-script-${index}`} className="popup-surface rounded-2xl p-3">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
                           {t('vacuum.addRoom') || 'Add room'} #{index + 1}

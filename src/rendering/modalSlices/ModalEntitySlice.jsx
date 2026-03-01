@@ -188,18 +188,28 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
 
       {showVacuumModal && (
         <ModalSuspense>
-          <VacuumModal
-            show={showVacuumModal}
-            onClose={() => {
-              setShowVacuumModal(false);
-              setActiveVacuumId(null);
-            }}
-            entities={entities}
-            callService={callService}
-            getA={getA}
-            t={t}
-            vacuumId={activeVacuumId}
-          />
+          {(() => {
+            const vacuumSettingsKey = getCardSettingsKey(activeVacuumId);
+            const vacuumSettings =
+              cardSettings[vacuumSettingsKey] || cardSettings[activeVacuumId] || {};
+
+            return (
+              <VacuumModal
+                show={showVacuumModal}
+                onClose={() => {
+                  setShowVacuumModal(false);
+                  setActiveVacuumId(null);
+                }}
+                entities={entities}
+                callService={callService}
+                getA={getA}
+                t={t}
+                vacuumId={activeVacuumId}
+                vacuumSettings={vacuumSettings}
+                conn={conn}
+              />
+            );
+          })()}
         </ModalSuspense>
       )}
 
