@@ -94,8 +94,7 @@ export default function GenericAndroidTVCard({
       const appNameStr = displayEntity?.attributes?.app_name?.toLowerCase() || '';
       if (appId.includes('jellyfin') || appNameStr.includes('jellyfin'))
         return getMediaLogoUrl('jellyfin');
-      if (appId.includes('emby') || appNameStr.includes('emby'))
-        return getMediaLogoUrl('emby');
+      if (appId.includes('emby') || appNameStr.includes('emby')) return getMediaLogoUrl('emby');
     }
 
     return getMediaLogoUrl(app);

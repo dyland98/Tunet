@@ -45,11 +45,11 @@ export const hasCandidateMediaMetadata = (candidate) => {
   const attrs = candidate.attributes || {};
   return Boolean(
     attrs.media_title ||
-      attrs.media_channel ||
-      attrs.media_artist ||
-      attrs.media_album_name ||
-      attrs.entity_picture ||
-      attrs.media_image_url
+    attrs.media_channel ||
+    attrs.media_artist ||
+    attrs.media_album_name ||
+    attrs.entity_picture ||
+    attrs.media_image_url
   );
 };
 
@@ -64,9 +64,7 @@ export const pickBestDisplayEntity = (candidates) => {
     .filter(Boolean)
     .map((candidate) => {
       const attrs = candidate.attributes || {};
-      const hasTitle = Boolean(
-        attrs.media_title || attrs.media_channel || attrs.media_album_name
-      );
+      const hasTitle = Boolean(attrs.media_title || attrs.media_channel || attrs.media_album_name);
       const hasImage = Boolean(attrs.entity_picture || attrs.media_image_url);
       const hasArtist = Boolean(attrs.media_artist || attrs.media_album_name);
       const hasMetadata = hasCandidateMediaMetadata(candidate);

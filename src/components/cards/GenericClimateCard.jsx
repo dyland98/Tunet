@@ -120,7 +120,7 @@ export default function GenericClimateCard({
             </div>
           </div>
         </div>
-        <div className="card-controls card-controls--temp shrink-0 invisible group-hover:visible">
+        <div className="card-controls card-controls--temp invisible shrink-0 group-hover:visible">
           <button
             onClick={(e) => {
               e.stopPropagation();

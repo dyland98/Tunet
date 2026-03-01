@@ -106,14 +106,18 @@ export default function StatusPill({
       return {
         mdiPath: mdiShieldOff,
         iconColor: 'var(--color-blue-500)',
-        iconBgStyle: { backgroundColor: 'color-mix(in srgb, var(--color-blue-500), transparent 80%)' },
+        iconBgStyle: {
+          backgroundColor: 'color-mix(in srgb, var(--color-blue-500), transparent 80%)',
+        },
       };
     }
     if (state === 'armed_home' || state === 'armed_away') {
       return {
         mdiPath: state === 'armed_home' ? mdiShieldHome : mdiShieldLock,
         iconColor: 'var(--color-green-500)',
-        iconBgStyle: { backgroundColor: 'color-mix(in srgb, var(--color-green-500), transparent 80%)' },
+        iconBgStyle: {
+          backgroundColor: 'color-mix(in srgb, var(--color-green-500), transparent 80%)',
+        },
       };
     }
     if (state === 'triggered') {
