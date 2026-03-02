@@ -5,12 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.12.0] — 2026-03-02
 
 ### Changed
 - **Breaking:** Split Media and SONOS into separate page types and separate card types.
 - Added dedicated SONOS page creation flow and SONOS group card creation flow.
 - Updated dashboard routing and card rendering so Media and SONOS are no longer treated as a single combined mode.
+- Refined Room Modal visual hierarchy with unified column surfaces, improved media player row styling, and de-boxed Temp Overview rows.
+
+
+## [Unreleased]
+
+### Changed
+- No unreleased changes yet.
 
 ## [1.11.2] — 2026-03-01
 

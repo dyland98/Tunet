@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.12.0
+
+- Includes dashboard release `1.12.0`.
+- **Breaking:** Splits Media and SONOS into separate page and card types.
+- Adds dedicated SONOS page creation and SONOS group card creation flows.
+- Updates dashboard routing/rendering so Media and SONOS are handled independently.
+- Refines Room Modal visuals with cleaner media player rows and a flatter Temp Overview layout.
+
 ## 1.11.2
 
 - Includes dashboard release `1.11.2`.
