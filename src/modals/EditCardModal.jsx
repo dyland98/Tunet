@@ -9,6 +9,7 @@ import {
   getDisplayUnitForKind,
   getEffectiveUnitMode,
   isConditionConfigured,
+  matchCarEntities,
   normalizeVisibilityConditionConfig,
 } from '../utils';
 
@@ -275,13 +276,29 @@ function CarMappingsSection({
   editSettingsKey,
   saveCardSetting,
   entities,
+  suggestedFields,
   batteryOptions,
   rangeOptions,
+  odometerOptions,
   locationOptions,
+  latitudeOptions,
+  longitudeOptions,
   chargingOptions,
   pluggedOptions,
+  chargingPowerOptions,
+  chargeRateOptions,
+  timeToFullOptions,
+  chargeEndTimeOptions,
+  fuelLevelOptions,
   climateOptions,
+  lockOptions,
+  ignitionSwitchOptions,
+  engineStatusOptions,
   lastUpdatedOptions,
+  apiStatusOptions,
+  chargeControlOptions,
+  chargeLimitNumberOptions,
+  chargeLimitSelectOptions,
   updateButtonOptions,
 }) {
   const [showAddSensor, setShowAddSensor] = React.useState(false);
@@ -291,11 +308,62 @@ function CarMappingsSection({
   const sensorTypes = [
     { key: 'batteryId', label: t('car.select.battery'), options: batteryOptions },
     { key: 'rangeId', label: t('car.select.range'), options: rangeOptions },
+    { key: 'odometerId', label: t('car.odometer') || 'Odometer', options: odometerOptions },
+    { key: 'fuelLevelId', label: t('car.fuel') || 'Fuel level', options: fuelLevelOptions },
     { key: 'locationId', label: t('car.select.location'), options: locationOptions },
+    { key: 'latitudeId', label: t('map.latitude') || 'Latitude', options: latitudeOptions },
+    { key: 'longitudeId', label: t('map.longitude') || 'Longitude', options: longitudeOptions },
     { key: 'chargingId', label: t('car.select.charging'), options: chargingOptions },
     { key: 'pluggedId', label: t('car.select.plugged'), options: pluggedOptions },
+    {
+      key: 'chargingPowerId',
+      label: t('car.chargingPower') || 'Charging power',
+      options: chargingPowerOptions,
+    },
+    {
+      key: 'chargeRateId',
+      label: t('car.chargeRate') || 'Charge rate',
+      options: chargeRateOptions,
+    },
+    {
+      key: 'timeToFullId',
+      label: t('car.timeToFull') || 'Time to full',
+      options: timeToFullOptions,
+    },
+    {
+      key: 'chargeEndTimeId',
+      label: t('car.chargeEndTime') || 'Charge end time',
+      options: chargeEndTimeOptions,
+    },
+    {
+      key: 'chargeControlId',
+      label: t('car.chargeControl') || 'Charge control',
+      options: chargeControlOptions,
+    },
+    {
+      key: 'chargeLimitNumberId',
+      label: t('car.chargeLimitNumber') || 'Charge limit number',
+      options: chargeLimitNumberOptions,
+    },
+    {
+      key: 'chargeLimitSelectId',
+      label: t('car.chargeLimitSelect') || 'Charge limit select',
+      options: chargeLimitSelectOptions,
+    },
     { key: 'climateId', label: t('car.select.climate'), options: climateOptions },
+    { key: 'lockId', label: t('car.lock') || 'Lock', options: lockOptions },
+    {
+      key: 'ignitionSwitchId',
+      label: t('car.ignition') || 'Ignition switch',
+      options: ignitionSwitchOptions,
+    },
+    {
+      key: 'engineStatusId',
+      label: t('car.engineStatus') || 'Engine status',
+      options: engineStatusOptions,
+    },
     { key: 'lastUpdatedId', label: t('car.select.lastUpdated'), options: lastUpdatedOptions },
+    { key: 'apiStatusId', label: t('car.apiStatus') || 'API status', options: apiStatusOptions },
     { key: 'updateButtonId', label: t('car.select.updateButton'), options: updateButtonOptions },
   ];
 
@@ -315,11 +383,32 @@ function CarMappingsSection({
     saveCardSetting(editSettingsKey, key, null);
   };
 
+  const handleAutoMap = () => {
+    if (!suggestedFields || typeof suggestedFields !== 'object') return;
+    sensorTypes.forEach((sensor) => {
+      if (editSettings[sensor.key]) return;
+      const suggested =
+        suggestedFields[sensor.key] ||
+        (sensor.key === 'chargingId' ? suggestedFields.chargingStateId : null);
+      if (suggested) {
+        saveCardSetting(editSettingsKey, sensor.key, suggested);
+      }
+    });
+  };
+
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="text-xs font-bold tracking-widest text-gray-500 uppercase">
         {t('car.mappingTitle')}: {t('car.mappingHint')}
       </div>
+
+      <button
+        onClick={handleAutoMap}
+        className="popup-surface popup-surface-hover flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] px-4 py-3 text-xs font-bold tracking-widest text-[var(--text-primary)] uppercase transition-colors"
+      >
+        <RefreshCw className="h-3.5 w-3.5" />
+        {t('car.autoMap') || 'Auto map from entities'}
+      </button>
 
       {mappedSensors.length === 0 && (
         <div className="py-8 text-center text-sm text-gray-500">{t('car.noSensorsMapped')}</div>
@@ -1229,58 +1318,20 @@ export default function EditCardModal({
         entities[b]?.attributes?.friendly_name || b
       )
     );
-  const batteryOptions = sortByName(
-    entityEntries
-      .filter(([id, entity]) => {
-        if (!id.startsWith('sensor.') && !id.startsWith('input_number.')) return false;
-        const deviceClass = entity?.attributes?.device_class;
-        const unit = entity?.attributes?.unit_of_measurement;
-        const lowerId = id.toLowerCase();
-        return (
-          deviceClass === 'battery' ||
-          unit === '%' ||
-          lowerId.includes('battery') ||
-          lowerId.includes('soc')
-        );
-      })
-      .map(([id]) => id)
-  );
-
-  const rangeOptions = sortByName(
-    entityEntries
-      .filter(([id, entity]) => {
-        if (!id.startsWith('sensor.') && !id.startsWith('input_number.')) return false;
-        const deviceClass = entity?.attributes?.device_class;
-        const unit = entity?.attributes?.unit_of_measurement;
-        const lowerId = id.toLowerCase();
-        return (
-          deviceClass === 'distance' || unit === 'km' || unit === 'mi' || lowerId.includes('range')
-        );
-      })
-      .map(([id]) => id)
-  );
-
-  const locationOptions = sortByName(byDomain('device_tracker'));
-
-  const chargingOptions = sortByName(
-    entityEntries
-      .filter(([id, entity]) => {
-        const lowerId = id.toLowerCase();
-        const deviceClass = entity?.attributes?.device_class;
-        return lowerId.includes('charging') || deviceClass === 'battery_charging';
-      })
-      .map(([id]) => id)
-  );
-
-  const pluggedOptions = sortByName(
-    entityEntries
-      .filter(([id, entity]) => {
-        const lowerId = id.toLowerCase();
-        const deviceClass = entity?.attributes?.device_class;
-        return lowerId.includes('plug') || lowerId.includes('plugged') || deviceClass === 'plug';
-      })
-      .map(([id]) => id)
-  );
+  const carMatch = matchCarEntities(entities || {});
+  const batteryOptions = carMatch.options?.batteryId || [];
+  const rangeOptions = carMatch.options?.rangeId || [];
+  const odometerOptions = carMatch.options?.odometerId || [];
+  const locationOptions = carMatch.options?.locationId || [];
+  const latitudeOptions = carMatch.options?.latitudeId || [];
+  const longitudeOptions = carMatch.options?.longitudeId || [];
+  const chargingOptions = carMatch.options?.chargingStateId || [];
+  const pluggedOptions = carMatch.options?.pluggedId || [];
+  const chargingPowerOptions = carMatch.options?.chargingPowerId || [];
+  const chargeRateOptions = carMatch.options?.chargeRateId || [];
+  const timeToFullOptions = carMatch.options?.timeToFullId || [];
+  const chargeEndTimeOptions = carMatch.options?.chargeEndTimeId || [];
+  const fuelLevelOptions = carMatch.options?.fuelLevelId || [];
 
   const climateOptions = sortByName(byDomain('climate'));
   const calendarOptions = sortByName(byDomain('calendar'));
@@ -1288,13 +1339,15 @@ export default function EditCardModal({
   const scriptOptions = sortByName(byDomain('script'));
   const mediaPlayerOptions = sortByName(byDomain('media_player'));
 
-  const lastUpdatedOptions = sortByName(
-    entityEntries
-      .filter(([id]) => id.startsWith('sensor.') && id.toLowerCase().includes('update'))
-      .map(([id]) => id)
-  );
-
-  const updateButtonOptions = sortByName(byDomain('button'));
+  const lastUpdatedOptions = carMatch.options?.lastUpdatedId || [];
+  const apiStatusOptions = carMatch.options?.apiStatusId || [];
+  const updateButtonOptions = carMatch.options?.updateButtonId || [];
+  const lockOptions = carMatch.options?.lockId || [];
+  const ignitionSwitchOptions = carMatch.options?.ignitionSwitchId || [];
+  const engineStatusOptions = carMatch.options?.engineStatusId || [];
+  const chargeLimitNumberOptions = carMatch.options?.chargeLimitNumberId || [];
+  const chargeLimitSelectOptions = carMatch.options?.chargeLimitSelectId || [];
+  const chargeControlOptions = sortByName(carMatch.chargeControlIds || []);
   const visibilityCondition = editSettings?.visibilityCondition || null;
   const normalizedVisibilityCondition = normalizeVisibilityConditionConfig(visibilityCondition);
   const visibilityEnabled =
@@ -2635,13 +2688,29 @@ export default function EditCardModal({
               editSettingsKey={editSettingsKey}
               saveCardSetting={saveCardSetting}
               entities={entities}
+              suggestedFields={carMatch.suggested}
               batteryOptions={batteryOptions}
               rangeOptions={rangeOptions}
+              odometerOptions={odometerOptions}
               locationOptions={locationOptions}
+              latitudeOptions={latitudeOptions}
+              longitudeOptions={longitudeOptions}
               chargingOptions={chargingOptions}
               pluggedOptions={pluggedOptions}
+              chargingPowerOptions={chargingPowerOptions}
+              chargeRateOptions={chargeRateOptions}
+              timeToFullOptions={timeToFullOptions}
+              chargeEndTimeOptions={chargeEndTimeOptions}
+              fuelLevelOptions={fuelLevelOptions}
               climateOptions={climateOptions}
+              lockOptions={lockOptions}
+              ignitionSwitchOptions={ignitionSwitchOptions}
+              engineStatusOptions={engineStatusOptions}
               lastUpdatedOptions={lastUpdatedOptions}
+              apiStatusOptions={apiStatusOptions}
+              chargeControlOptions={chargeControlOptions}
+              chargeLimitNumberOptions={chargeLimitNumberOptions}
+              chargeLimitSelectOptions={chargeLimitSelectOptions}
               updateButtonOptions={updateButtonOptions}
             />
           )}

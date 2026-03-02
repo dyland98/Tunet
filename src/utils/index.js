@@ -26,3 +26,4 @@ export {
   ENTITY_STALE_NO_UPDATE_MS,
 } from './connectionHealth';
 export { getEffectiveRoomEntityIds, filterEntitiesByDomain } from './roomEntities';
+export { matchCarEntities } from './carEntityMatcher';

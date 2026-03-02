@@ -44,13 +44,29 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
     batteryId,
     climateId,
     locationId,
+    latitudeId,
+    longitudeId,
     chargingId,
+    chargingStateId,
+    chargingPowerId,
+    chargeRateId,
+    timeToFullId,
+    chargeEndTimeId,
+    chargeControlId,
+    chargeControlIds,
+    chargeLimitNumberId,
+    chargeLimitSelectId,
     pluggedId,
     rangeId,
+    odometerId,
+    fuelLevelId,
     tempId,
     lastUpdatedId,
+    apiStatusId,
     updateButtonId,
   } = car || {};
+
+  const effectiveChargingId = chargingStateId || chargingId;
 
   const climateTempRaw = climateId ? getA(climateId, 'current_temperature') : null;
   const climateTemp =
@@ -94,7 +110,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
   });
 
   const isCharging =
-    entities[chargingId]?.state === 'on' || entities[chargingId]?.state === 'charging';
+    entities[effectiveChargingId]?.state === 'on' ||
+    entities[effectiveChargingId]?.state === 'charging';
   const isHeating =
     entities[climateId]?.state &&
     !['off', 'unknown', 'unavailable'].includes(entities[climateId]?.state);
@@ -106,8 +123,39 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
       ? 'rgba(251, 146, 60, 0.1)'
       : 'var(--glass-bg)';
 
-  const lat = locationId ? getA(locationId, 'latitude') : null;
-  const long = locationId ? getA(locationId, 'longitude') : null;
+  const lat =
+    (locationId ? getA(locationId, 'latitude') : null) ??
+    (latitudeId ? parseFloat(getS(latitudeId)) : null);
+  const long =
+    (locationId ? getA(locationId, 'longitude') : null) ??
+    (longitudeId ? parseFloat(getS(longitudeId)) : null);
+
+  const chargingPowerValue = chargingPowerId ? getS(chargingPowerId) : null;
+  const chargeRateValue = chargeRateId ? getS(chargeRateId) : null;
+  const timeToFullValue = timeToFullId ? getS(timeToFullId) : null;
+  const chargeEndTimeValue = chargeEndTimeId ? getS(chargeEndTimeId) : null;
+  const odometerValue = odometerId ? getS(odometerId) : null;
+  const fuelLevelValue = fuelLevelId ? getS(fuelLevelId) : null;
+  const apiStatusValue = apiStatusId ? getS(apiStatusId) : null;
+  const controlIds = Array.isArray(chargeControlIds)
+    ? chargeControlIds
+    : chargeControlId
+      ? [chargeControlId]
+      : [];
+
+  const handleChargeControl = (entityId) => {
+    if (!entityId) return;
+    const domain = entityId.split('.')[0];
+    const state = entities[entityId]?.state;
+    if (domain === 'switch') {
+      const isOn = state === 'on';
+      callService('switch', isOn ? 'turn_off' : 'turn_on', { entity_id: entityId });
+      return;
+    }
+    if (domain === 'button') {
+      callService('button', 'press', { entity_id: entityId });
+    }
+  };
 
   return (
     <div
@@ -208,70 +256,10 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Right Column - Stats & Controls (Span 2) */}
-          <div className="space-y-4 lg:col-span-2">
-            {/* Battery - Primary Stat */}
-            {batteryId && (
-              <div className="popup-surface flex flex-col items-center gap-1 rounded-2xl p-4 transition-all">
-                <div className="mb-1 flex items-center gap-2">
-                  {isCharging && <Zap className="h-4 w-4 animate-pulse text-green-400" />}
-                  <span className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
-                    {t('car.battery')}
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span
-                    className={`text-4xl font-light italic ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}
-                  >
-                    {batteryId ? formatValue(getS(batteryId)) : '--'}
-                  </span>
-                  <span className="text-xl font-medium text-gray-500">%</span>
-                </div>
-                {pluggedId && (
-                  <div
-                    className={`mt-2 rounded-full px-3 py-1 text-[10px] font-bold tracking-widest uppercase ${entities[pluggedId]?.state === 'on' ? 'bg-green-500/10 text-green-400' : 'bg-gray-500/10 text-gray-500'}`}
-                  >
-                    {entities[pluggedId]?.state === 'on' ? t('car.pluggedIn') : t('car.unplugged')}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Smaller Grid for Secondary Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              {rangeId && (
-                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-4">
-                  <span className="mb-1 text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
-                    {t('car.range')}
-                  </span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-light text-[var(--text-primary)]">
-                      {formatUnitValue(displayRangeValue, { kind: 'length', fallback: '--' })}
-                    </span>
-                    <span className="text-xs font-bold text-gray-500">{displayRangeUnit}</span>
-                  </div>
-                </div>
-              )}
-              {(tempValue !== null || tempId) && (
-                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-4">
-                  <span className="mb-1 text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
-                    Temp
-                  </span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-light text-[var(--text-primary)]">
-                      {formatUnitValue(displayTempValue, { kind: 'temperature', fallback: '--' })}
-                    </span>
-                    <span className="text-xs font-bold text-gray-500">{displayTempUnit}</span>
-                  </div>
-                </div>
-              )}
-            </div>
 
             {/* Climate Control */}
             {climateId && (
-              <div className="popup-surface space-y-4 rounded-2xl p-4">
+              <div className="popup-surface mt-4 space-y-4 rounded-2xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div
@@ -331,6 +319,202 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Right Column - Stats & Controls (Span 2) */}
+          <div className="space-y-4 lg:col-span-2">
+            {/* Smaller Grid for Secondary Stats */}
+            <div className="grid grid-cols-2 gap-3">
+              {batteryId && (
+                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-4">
+                  <span className="mb-1 flex items-center gap-1 text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                    {isCharging && <Zap className="h-3.5 w-3.5 animate-pulse text-green-400" />}
+                    {t('car.battery')}
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className={`text-2xl font-light ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}
+                    >
+                      {batteryId ? formatValue(getS(batteryId)) : '--'}
+                    </span>
+                    <span className="text-xs font-bold text-gray-500">%</span>
+                  </div>
+                  {pluggedId && (
+                    <span
+                      className={`mt-1 text-[10px] font-bold tracking-widest uppercase ${entities[pluggedId]?.state === 'on' ? 'text-green-400' : 'text-gray-500'}`}
+                    >
+                      {entities[pluggedId]?.state === 'on' ? t('car.pluggedIn') : t('car.unplugged')}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {rangeId && (
+                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-4">
+                  <span className="mb-1 text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                    {t('car.range')}
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-light text-[var(--text-primary)]">
+                      {formatUnitValue(displayRangeValue, { kind: 'length', fallback: '--' })}
+                    </span>
+                    <span className="text-xs font-bold text-gray-500">{displayRangeUnit}</span>
+                  </div>
+                </div>
+              )}
+              {(tempValue !== null || tempId) && (
+                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-4">
+                  <span className="mb-1 text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                    Temp
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-light text-[var(--text-primary)]">
+                      {formatUnitValue(displayTempValue, { kind: 'temperature', fallback: '--' })}
+                    </span>
+                    <span className="text-xs font-bold text-gray-500">{displayTempUnit}</span>
+                  </div>
+                </div>
+              )}
+              {odometerId && (
+                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-4">
+                  <span className="mb-1 text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                    Odo
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-light text-[var(--text-primary)]">
+                      {formatValue(odometerValue)}
+                    </span>
+                    <span className="text-xs font-bold text-gray-500">
+                      {entities[odometerId]?.attributes?.unit_of_measurement || displayRangeUnit}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {fuelLevelId && (
+                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-4">
+                  <span className="mb-1 text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                    Fuel
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-light text-[var(--text-primary)]">
+                      {formatValue(fuelLevelValue)}
+                    </span>
+                    <span className="text-xs font-bold text-gray-500">%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {(chargingPowerId || chargeRateId || timeToFullId || chargeEndTimeId) && (
+              <div className="popup-surface grid grid-cols-2 gap-2 rounded-2xl p-3">
+                {chargingPowerId && (
+                  <div className="rounded-xl bg-[var(--glass-bg)] px-3 py-2">
+                    <div className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+                      Power
+                    </div>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">
+                      {chargingPowerValue ?? '--'}
+                    </div>
+                  </div>
+                )}
+                {chargeRateId && (
+                  <div className="rounded-xl bg-[var(--glass-bg)] px-3 py-2">
+                    <div className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+                      Rate
+                    </div>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">
+                      {chargeRateValue ?? '--'}
+                    </div>
+                  </div>
+                )}
+                {timeToFullId && (
+                  <div className="rounded-xl bg-[var(--glass-bg)] px-3 py-2">
+                    <div className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+                      Full in
+                    </div>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">
+                      {timeToFullValue ?? '--'}
+                    </div>
+                  </div>
+                )}
+                {chargeEndTimeId && (
+                  <div className="rounded-xl bg-[var(--glass-bg)] px-3 py-2">
+                    <div className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+                      End time
+                    </div>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">
+                      {chargeEndTimeValue ?? '--'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(controlIds.length > 0 || chargeLimitNumberId || chargeLimitSelectId) && (
+              <div className="popup-surface space-y-3 rounded-2xl p-4">
+                <div className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+                  Charge Control
+                </div>
+                {controlIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {controlIds.map((entityId) => (
+                      <button
+                        key={entityId}
+                        onClick={() => handleChargeControl(entityId)}
+                        className="popup-surface popup-surface-hover rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-primary)] uppercase"
+                      >
+                        {entities[entityId]?.attributes?.friendly_name || entityId}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {chargeLimitNumberId && (
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+                      {entities[chargeLimitNumberId]?.attributes?.friendly_name || 'Charge limit'}
+                    </div>
+                    <M3Slider
+                      min={entities[chargeLimitNumberId]?.attributes?.min ?? 50}
+                      max={entities[chargeLimitNumberId]?.attributes?.max ?? 100}
+                      step={entities[chargeLimitNumberId]?.attributes?.step ?? 1}
+                      value={parseFloat(getS(chargeLimitNumberId)) || 0}
+                      onChange={(e) =>
+                        callService('number', 'set_value', {
+                          entity_id: chargeLimitNumberId,
+                          value: parseFloat(e.target.value),
+                        })
+                      }
+                      colorClass="bg-[var(--accent-color)]"
+                    />
+                  </div>
+                )}
+                {chargeLimitSelectId && (
+                  <select
+                    value={getS(chargeLimitSelectId) || ''}
+                    onChange={(e) =>
+                      callService('select', 'select_option', {
+                        entity_id: chargeLimitSelectId,
+                        option: e.target.value,
+                      })
+                    }
+                    className="popup-surface w-full rounded-xl px-3 py-2 text-sm text-[var(--text-primary)]"
+                  >
+                    {(entities[chargeLimitSelectId]?.attributes?.options || []).map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            {apiStatusId && apiStatusValue && (
+              <div className="px-1 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                API: {apiStatusValue}
+              </div>
+            )}
+
           </div>
         </div>
       </div>

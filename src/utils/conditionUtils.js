@@ -21,9 +21,38 @@ const ENTITY_SETTING_KEYS = [
   'tempId',
   'remoteEntityId',
   'mediaEntityId',
+  'batteryId',
+  'rangeId',
+  'odometerId',
+  'locationId',
+  'latitudeId',
+  'longitudeId',
+  'chargingId',
+  'chargingStateId',
+  'pluggedId',
+  'chargingPowerId',
+  'chargeRateId',
+  'timeToFullId',
+  'chargeEndTimeId',
+  'chargeControlId',
+  'chargeLimitNumberId',
+  'chargeLimitSelectId',
+  'climateId',
+  'lockId',
+  'ignitionSwitchId',
+  'engineStatusId',
+  'lastUpdatedId',
+  'apiStatusId',
+  'updateButtonId',
 ];
 
-const ENTITY_ARRAY_SETTING_KEYS = ['entityIds', 'mediaIds', 'linkedMediaPlayers', 'calendars'];
+const ENTITY_ARRAY_SETTING_KEYS = [
+  'entityIds',
+  'mediaIds',
+  'linkedMediaPlayers',
+  'calendars',
+  'chargeControlIds',
+];
 
 const ENTITY_ID_PATTERN = /^[a-z0-9_]+\.[a-z0-9_]+(?:[a-z0-9_\-.]*)$/i;
 

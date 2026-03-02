@@ -1,6 +1,7 @@
 import { buildOnboardingSteps } from '../config/onboarding';
 import { useHomeAssistantMeta } from '../contexts';
 import { useProfiles } from '../hooks/useProfiles';
+import { matchCarEntities } from '../utils';
 import { ModalEntitySlice } from './modalSlices/ModalEntitySlice';
 import { ModalManagementSlice } from './modalSlices/ModalManagementSlice';
 import { ModalSettingsSlice } from './modalSlices/ModalSettingsSlice';
@@ -61,7 +62,53 @@ export default function ModalOrchestrator({
     setInactivityTimeout,
   } = appearance;
 
-  const resolveCarSettings = (_cardId, settings = {}) => settings;
+  const resolveCarSettings = (_cardId, settings = {}) => {
+    const matched = matchCarEntities(entities || {});
+    const suggested = matched.suggested || {};
+
+    const hasSetting = (key) => Object.prototype.hasOwnProperty.call(settings, key);
+    const resolved = (key, suggestedKey = key) => {
+      if (hasSetting(key)) return settings[key];
+      return suggested[suggestedKey] ?? null;
+    };
+
+    const chargingStateId = hasSetting('chargingStateId')
+      ? settings.chargingStateId
+      : hasSetting('chargingId')
+        ? settings.chargingId
+        : suggested.chargingStateId ?? null;
+
+    return {
+      ...settings,
+      batteryId: resolved('batteryId'),
+      rangeId: resolved('rangeId'),
+      odometerId: resolved('odometerId'),
+      fuelLevelId: resolved('fuelLevelId'),
+      locationId: resolved('locationId'),
+      latitudeId: resolved('latitudeId'),
+      longitudeId: resolved('longitudeId'),
+      chargingStateId,
+      chargingId: hasSetting('chargingId') ? settings.chargingId : chargingStateId,
+      pluggedId: resolved('pluggedId'),
+      chargingPowerId: resolved('chargingPowerId'),
+      chargeRateId: resolved('chargeRateId'),
+      timeToFullId: resolved('timeToFullId'),
+      chargeEndTimeId: resolved('chargeEndTimeId'),
+      chargeLimitNumberId: resolved('chargeLimitNumberId'),
+      chargeLimitSelectId: resolved('chargeLimitSelectId'),
+      climateId: resolved('climateId'),
+      lockId: resolved('lockId'),
+      ignitionSwitchId: resolved('ignitionSwitchId'),
+      engineStatusId: resolved('engineStatusId'),
+      lastUpdatedId: resolved('lastUpdatedId'),
+      apiStatusId: resolved('apiStatusId'),
+      updateButtonId: resolved('updateButtonId'),
+      chargeControlIds:
+        hasSetting('chargeControlIds')
+          ? settings.chargeControlIds
+          : matched.chargeControlIds,
+    };
+  };
   const editModalProps = useEditModalProps({
     showEditCardModal,
     editCardSettingsKey,

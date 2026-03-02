@@ -56,8 +56,18 @@ const CarCard = ({
   const { haConfig } = useHomeAssistantMeta();
 
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
-  const { batteryId, rangeId, locationId, chargingId, pluggedId, climateId, tempId, imageUrl } =
-    settings;
+  const {
+    batteryId,
+    rangeId,
+    locationId,
+    chargingId,
+    chargingStateId,
+    pluggedId,
+    climateId,
+    tempId,
+    imageUrl,
+  } = settings;
+  const effectiveChargingId = chargingStateId || chargingId;
 
   const batteryValue = getNumberState(entities, batteryId);
   const rangeValue = getNumberState(entities, rangeId);
@@ -100,7 +110,7 @@ const CarCard = ({
   });
   const locationLabel = locationId ? getS(locationId) : null;
 
-  const chargingState = getSafeState(entities, chargingId);
+  const chargingState = getSafeState(entities, effectiveChargingId);
   const pluggedState = getSafeState(entities, pluggedId);
   const climateEntity = climateId ? entities[climateId] : null;
 
