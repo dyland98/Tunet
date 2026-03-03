@@ -304,6 +304,46 @@ export async function getEntityRegistry(conn) {
 }
 
 /**
+ * Get related entity IDs for a source entity using HA registry linkage.
+ * Relations are determined by shared device_id and/or config entry id.
+ */
+export async function getRelatedEntityIds(conn, sourceEntityId, options = {}) {
+  if (!sourceEntityId) return [];
+
+  const domains = Array.isArray(options.domains) ? options.domains : null;
+  const [entityReg] = await Promise.all([getEntityRegistry(conn)]);
+  if (!Array.isArray(entityReg) || entityReg.length === 0) return [];
+
+  const source = entityReg.find((entry) => entry?.entity_id === sourceEntityId);
+  if (!source) return [];
+
+  const sourceDeviceId = source.device_id || null;
+  const sourceConfigEntries = new Set(
+    [source.config_entry_id, ...(Array.isArray(source.config_entry_ids) ? source.config_entry_ids : [])].filter(Boolean)
+  );
+
+  const related = entityReg.filter((entry) => {
+    if (!entry?.entity_id) return false;
+    if (entry.disabled_by || entry.hidden_by) return false;
+
+    const sameDevice = sourceDeviceId && entry.device_id === sourceDeviceId;
+    const entryConfigIds = [
+      entry.config_entry_id,
+      ...(Array.isArray(entry.config_entry_ids) ? entry.config_entry_ids : []),
+    ].filter(Boolean);
+    const sameConfigEntry =
+      sourceConfigEntries.size > 0 && entryConfigIds.some((configId) => sourceConfigEntries.has(configId));
+
+    if (!sameDevice && !sameConfigEntry) return false;
+
+    if (!domains || domains.length === 0) return true;
+    return domains.some((domain) => entry.entity_id.startsWith(`${domain}.`));
+  });
+
+  return related.map((entry) => entry.entity_id);
+}
+
+/**
  * Get all entity IDs that belong to a given area.
  * Resolves via entity registry (direct area_id) and device registry (device -> area).
  */

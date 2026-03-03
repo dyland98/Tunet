@@ -2,6 +2,25 @@ import { useEffect, useRef, useState } from 'react';
 import { getIconComponent } from '../../icons';
 import { AlertTriangle, Battery, Bot, Home, MapPin, Pause, Play } from '../../icons';
 
+function getVacuumStateLabel(state, battery, t) {
+  const normalized = String(state || '').toLowerCase();
+  if (!normalized) return t('vacuum.unknown');
+
+  if (normalized === 'cleaning' || normalized === 'vacuuming') return t('vacuum.cleaning');
+  if (normalized === 'returning' || normalized === 'going_home' || normalized === 'return_to_base') {
+    return t('vacuum.returning') || t('room.vacuumStatus.goingHome') || normalized;
+  }
+  if ((normalized === 'charging' || normalized === 'docked') && battery === 100) return t('vacuum.docked');
+  if (normalized === 'docked') return t('vacuum.charging');
+  if (normalized === 'idle' || normalized === 'ready') return t('vacuum.idle');
+  if (normalized === 'paused' || normalized === 'pause') return t('vacuum.pause');
+  if (['error', 'fault', 'problem', 'stuck'].includes(normalized)) {
+    return t('room.vacuumStatus.error') || 'Error';
+  }
+  if (normalized === 'stopped') return t('room.vacuumStatus.stopped') || 'Stopped';
+  return state;
+}
+
 const VacuumCard = ({
   vacuumId,
   dragProps,
@@ -63,20 +82,15 @@ const VacuumCard = ({
   const settings = cardSettings[settingsKey] || cardSettings[vacuumId] || {};
   const isSmall = settings.size === 'small';
   const state = entity?.state;
+  const normalizedState = String(state || '').toLowerCase();
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
+  const isErrorState = ['error', 'fault', 'problem', 'stuck'].includes(normalizedState);
   const battery = getA(vacuumId, 'battery_level');
   const room = getA(vacuumId, 'current_room') || getA(vacuumId, 'room');
   const name = customNames[vacuumId] || getA(vacuumId, 'friendly_name', t('vacuum.name'));
   const vacuumIconName = customIcons[vacuumId] || entity?.attributes?.icon;
   const Icon = vacuumIconName ? getIconComponent(vacuumIconName) || Bot : Bot;
-  const statusText = (() => {
-    if (state === 'cleaning') return t('vacuum.cleaning');
-    if (state === 'returning') return t('vacuum.returning');
-    if ((state === 'charging' || state === 'docked') && battery === 100) return t('vacuum.docked');
-    if (state === 'docked') return t('vacuum.charging');
-    if (state === 'idle') return t('vacuum.idle');
-    return state || t('vacuum.unknown');
-  })();
+  const statusText = getVacuumStateLabel(state, battery, t);
 
   const showRoom = !!room;
   const showBattery = typeof battery === 'number';
@@ -95,12 +109,18 @@ const VacuumCard = ({
         className={`glass-texture touch-feedback ${isMobile ? 'gap-2 p-3 pl-4' : 'gap-4 p-4 pl-5'} group relative flex h-full items-center justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
         style={{
           ...cardStyle,
-          backgroundColor: state === 'cleaning' ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)',
+          backgroundColor: isErrorState
+            ? 'rgba(239, 68, 68, 0.08)'
+            : state === 'cleaning'
+              ? 'rgba(59, 130, 246, 0.08)'
+              : 'var(--card-bg)',
           borderColor: editMode
             ? 'rgba(59, 130, 246, 0.2)'
-            : state === 'cleaning'
-              ? 'rgba(59, 130, 246, 0.3)'
-              : 'var(--card-border)',
+            : isErrorState
+              ? 'rgba(239, 68, 68, 0.35)'
+              : state === 'cleaning'
+                ? 'rgba(59, 130, 246, 0.3)'
+                : 'var(--card-border)',
           containerType: 'inline-size',
         }}
       >
@@ -119,6 +139,12 @@ const VacuumCard = ({
               <span className="text-sm leading-none font-bold text-[var(--text-primary)]">
                 {statusText}
               </span>
+              {isErrorState && (
+                <span className="flex items-center gap-1 rounded-full border border-red-500/50 bg-red-500/10 px-2 py-0.5 text-[10px] font-bold tracking-widest text-red-300 uppercase">
+                  <AlertTriangle className="h-3 w-3" />
+                  {t('room.vacuumStatus.error') || 'Error'}
+                </span>
+              )}
               {showBattery && !isNarrowSmallCard && (
                 <span className="text-xs text-[var(--text-secondary)]">{battery}%</span>
               )}
@@ -168,12 +194,18 @@ const VacuumCard = ({
       className={`glass-texture touch-feedback ${isMobile ? 'p-5' : 'p-7'} group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
       style={{
         ...cardStyle,
-        backgroundColor: state === 'cleaning' ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)',
+        backgroundColor: isErrorState
+          ? 'rgba(239, 68, 68, 0.08)'
+          : state === 'cleaning'
+            ? 'rgba(59, 130, 246, 0.08)'
+            : 'var(--card-bg)',
         borderColor: editMode
           ? 'rgba(59, 130, 246, 0.2)'
-          : state === 'cleaning'
-            ? 'rgba(59, 130, 246, 0.3)'
-            : 'var(--card-border)',
+          : isErrorState
+            ? 'rgba(239, 68, 68, 0.35)'
+            : state === 'cleaning'
+              ? 'rgba(59, 130, 246, 0.3)'
+              : 'var(--card-border)',
       }}
     >
       {controls}
@@ -184,6 +216,14 @@ const VacuumCard = ({
           <Icon className="h-5 w-5 stroke-[1.5px]" />
         </div>
         <div className="flex flex-col items-end gap-2">
+          {isErrorState && (
+            <div className="flex items-center gap-1.5 rounded-full border border-red-500/50 bg-red-500/10 px-3 py-1 text-red-300">
+              <AlertTriangle className="h-3 w-3" />
+              <span className="text-xs font-bold tracking-widest uppercase">
+                {t('room.vacuumStatus.error') || 'Error'}
+              </span>
+            </div>
+          )}
           {showRoom && (
             <div className="flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-1 text-[var(--text-secondary)]">
               <MapPin className="h-3 w-3" />

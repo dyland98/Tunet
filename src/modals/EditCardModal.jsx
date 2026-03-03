@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Check, Plus, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import ConditionBuilder from '../components/ui/ConditionBuilder';
-import { getEntitiesForArea } from '../services/haClient';
+import { getEntitiesForArea, getRelatedEntityIds } from '../services/haClient';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
   convertValueByKind,
@@ -1282,6 +1282,7 @@ export default function EditCardModal({
   const [mediaSearch, setMediaSearch] = React.useState('');
   const [showVisibilityLogic, setShowVisibilityLogic] = React.useState(false);
   const [showPopupLogic, setShowPopupLogic] = React.useState(false);
+  const [registryVacuumSensorIds, setRegistryVacuumSensorIds] = React.useState([]);
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
 
@@ -1290,6 +1291,26 @@ export default function EditCardModal({
     setShowVisibilityLogic(false);
     setShowPopupLogic(false);
   }, [isOpen, entityId]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const loadRelatedSensors = async () => {
+      if (!isOpen || !isEditVacuum || !entityId || !conn) {
+        if (!cancelled) setRegistryVacuumSensorIds([]);
+        return;
+      }
+      try {
+        const ids = await getRelatedEntityIds(conn, entityId, { domains: ['sensor'] });
+        if (!cancelled) setRegistryVacuumSensorIds(Array.isArray(ids) ? ids : []);
+      } catch {
+        if (!cancelled) setRegistryVacuumSensorIds([]);
+      }
+    };
+    void loadRelatedSensors();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isEditVacuum, entityId, conn]);
 
   const roomPageOptions = React.useMemo(() => {
     const pageIds = Array.isArray(pagesConfig?.pages) ? pagesConfig.pages : [];
@@ -1337,6 +1358,56 @@ export default function EditCardModal({
   const calendarOptions = sortByName(byDomain('calendar'));
   const todoOptions = sortByName(byDomain('todo'));
   const scriptOptions = sortByName(byDomain('script'));
+  const vacuumSensorOptions = (() => {
+    const isVacuumCard = typeof entityId === 'string' && entityId.startsWith('vacuum.');
+    const allSensors = sortByName(byDomain('sensor'));
+    if (!isVacuumCard) return allSensors;
+
+    const registryFiltered = registryVacuumSensorIds.filter((sensorId) =>
+      allSensors.includes(sensorId)
+    );
+
+    const mappedSensorIds = [
+      editSettings?.batterySensorId,
+      editSettings?.currentRoomSensorId,
+      editSettings?.cleaningTimeSensorId,
+      editSettings?.cleanedAreaSensorId,
+      editSettings?.totalCleanTimeSensorId,
+      editSettings?.totalCleanAreaSensorId,
+      editSettings?.totalCleanCountSensorId,
+      editSettings?.lastCleanStartSensorId,
+      editSettings?.lastCleanEndSensorId,
+    ].filter(Boolean);
+
+    if (registryFiltered.length > 0) {
+      return sortByName(Array.from(new Set([...registryFiltered, ...mappedSensorIds])));
+    }
+
+    const vacuumFriendlyName = (entities?.[entityId]?.attributes?.friendly_name || '').toLowerCase();
+    const vacuumIdPart = entityId.slice('vacuum.'.length).toLowerCase();
+    const vacuumTokens = Array.from(
+      new Set(
+        [
+          ...vacuumIdPart.split(/[_\-\s]+/),
+          ...vacuumFriendlyName.split(/[_\-\s]+/),
+        ]
+          .filter((token) => token.length > 2)
+          .filter((token) => !['vacuum', 'robot', 'cleaner'].includes(token))
+      )
+    );
+
+    const related = allSensors.filter((sensorId) => {
+      const lowerId = sensorId.toLowerCase();
+      const friendly = (entities?.[sensorId]?.attributes?.friendly_name || '').toLowerCase();
+
+      if (vacuumIdPart && lowerId.includes(vacuumIdPart)) return true;
+      if (vacuumFriendlyName && friendly.includes(vacuumFriendlyName)) return true;
+      return vacuumTokens.some((token) => lowerId.includes(token) || friendly.includes(token));
+    });
+
+    const merged = Array.from(new Set([...related, ...mappedSensorIds]));
+    return merged.length > 0 ? sortByName(merged) : allSensors;
+  })();
   const mediaPlayerOptions = sortByName(byDomain('media_player'));
 
   const lastUpdatedOptions = carMatch.options?.lastUpdatedId || [];
@@ -3274,6 +3345,80 @@ export default function EditCardModal({
 
           {isEditVacuum && editSettingsKey && (
             <div className="space-y-3">
+              <label className="ml-1 text-xs font-bold text-gray-500 uppercase">
+                {t('vacuum.sensorMapping') || 'Sensor mapping'}
+              </label>
+              <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                {t('vacuum.sensorMappingHint') ||
+                  'Optional: manually map sensor entities if auto-detection does not find your vacuum stats.'}
+              </p>
+
+              <div className="space-y-2">
+                {[
+                  {
+                    key: 'batterySensorId',
+                    label: t('vacuum.battery') || 'Battery',
+                  },
+                  {
+                    key: 'currentRoomSensorId',
+                    label: t('vacuum.room') || 'Room',
+                  },
+                  {
+                    key: 'cleaningTimeSensorId',
+                    label: t('vacuum.statsTime') || 'Current session time',
+                  },
+                  {
+                    key: 'cleanedAreaSensorId',
+                    label: t('vacuum.statsArea') || 'Current session area',
+                  },
+                  {
+                    key: 'totalCleanTimeSensorId',
+                    label: t('vacuum.statsTotalTime') || 'Total clean time',
+                  },
+                  {
+                    key: 'totalCleanAreaSensorId',
+                    label: t('vacuum.statsTotalArea') || 'Total clean area',
+                  },
+                  {
+                    key: 'totalCleanCountSensorId',
+                    label: t('vacuum.statsTotalCleans') || 'Total cleans',
+                  },
+                  {
+                    key: 'lastCleanStartSensorId',
+                    label: t('vacuum.lastCleanStart') || 'Last clean start',
+                  },
+                  {
+                    key: 'lastCleanEndSensorId',
+                    label: t('vacuum.lastCleaned') || 'Last clean end',
+                  },
+                ].map((field) => (
+                  <div key={field.key} className="popup-surface rounded-2xl p-3">
+                    <label className="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                      {field.label}
+                    </label>
+                    <select
+                      value={editSettings?.[field.key] || ''}
+                      onChange={(e) =>
+                        saveCardSetting(editSettingsKey, field.key, e.target.value || null)
+                      }
+                      className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                      style={{
+                        backgroundColor: 'var(--card-bg)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--glass-border)',
+                      }}
+                    >
+                      <option value="">{t('common.auto') || 'Auto'}</option>
+                      {vacuumSensorOptions.map((sensorId) => (
+                        <option key={sensorId} value={sensorId}>
+                          {entities[sensorId]?.attributes?.friendly_name || sensorId}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
               <label className="ml-1 text-xs font-bold text-gray-500 uppercase">
                 {t('vacuum.roomScripts') || 'Room Scripts'}
               </label>
