@@ -1,26 +1,28 @@
 import { createElement } from 'react';
 import { MissingEntityCard } from '../components';
 import { getSettings } from './helpers';
-import { renderSensorCard } from './cards/sensorRenderer';
-import { renderLightCard } from './cards/lightRenderer';
-import { renderCameraCard } from './cards/cameraRenderer';
-import { renderSpacerCard } from './cards/spacerRenderer';
-import { renderAutomationCard } from './cards/automationRenderer';
-import { renderCarCard } from './cards/carRenderer';
-import { renderVacuumCard } from './cards/vacuumRenderer';
-import { renderFanCard } from './cards/fanRenderer';
-import { renderMediaPlayerCard } from './cards/mediaPlayerRenderer';
-import { renderMediaGroupCard } from './cards/mediaGroupRenderer';
-import { renderAlarmCard } from './cards/alarmRenderer';
-import { renderRoomCard } from './cards/roomRenderer';
-import { renderWeatherTempCard } from './cards/weatherTempRenderer';
-import { renderGenericClimateCard } from './cards/climateRenderer';
-import { renderGenericCostCard } from './cards/costRenderer';
-import { renderGenericAndroidTVCard } from './cards/androidTvRenderer';
-import { renderCalendarCard } from './cards/calendarRenderer';
-import { renderTodoCard } from './cards/todoRenderer';
-import { renderNordpoolCard } from './cards/nordpoolRenderer';
-import { renderCoverCard } from './cards/coverRenderer';
+import {
+  renderSensorCard,
+  renderLightCard,
+  renderAutomationCard,
+  renderCarCard,
+  renderVacuumCard,
+  renderFanCard,
+  renderMediaPlayerCard,
+  renderMediaGroupCard,
+  renderWeatherTempCard,
+  renderGenericClimateCard,
+  renderGenericCostCard,
+  renderGenericAndroidTVCard,
+  renderCalendarCard,
+  renderTodoCard,
+  renderNordpoolCard,
+  renderCoverCard,
+  renderAlarmCard,
+  renderRoomCard,
+  renderCameraCard,
+  renderSpacerCard,
+} from './cards';
 
 /**
  * Unified card renderer signature used by registry entries:
