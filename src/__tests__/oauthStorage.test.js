@@ -3,7 +3,9 @@ import {
   clearOAuthTokens,
   hasOAuthTokens,
   loadTokens,
+  requestTokensFromOtherTabs,
   saveTokens,
+  subscribeToOAuthTokenChanges,
 } from '../services/oauthStorage';
 
 describe('oauthStorage', () => {
@@ -19,16 +21,18 @@ describe('oauthStorage', () => {
     consoleErrorSpy?.mockRestore();
   });
 
-  it('stores OAuth tokens in session storage only', () => {
+  it('stores OAuth tokens in persistent browser storage', () => {
     saveTokens({ access_token: 'access-1', refresh_token: 'refresh-1' });
 
     expect(sessionStorage.getItem('tunet_auth_cache_v1')).toBe(
       JSON.stringify({ access_token: 'access-1', refresh_token: 'refresh-1' })
     );
-    expect(localStorage.getItem('tunet_auth_cache_v1')).toBeNull();
+    expect(localStorage.getItem('tunet_auth_cache_v1')).toBe(
+      JSON.stringify({ access_token: 'access-1', refresh_token: 'refresh-1' })
+    );
   });
 
-  it('migrates legacy local storage OAuth tokens into session storage', () => {
+  it('migrates legacy local storage OAuth tokens into the primary storage slot', () => {
     localStorage.setItem(
       'tunet_auth_cache_v1',
       JSON.stringify({ access_token: 'access-2', refresh_token: 'refresh-2' })
@@ -38,7 +42,9 @@ describe('oauthStorage', () => {
     expect(sessionStorage.getItem('tunet_auth_cache_v1')).toBe(
       JSON.stringify({ access_token: 'access-2', refresh_token: 'refresh-2' })
     );
-    expect(localStorage.getItem('tunet_auth_cache_v1')).toBeNull();
+    expect(localStorage.getItem('tunet_auth_cache_v1')).toBe(
+      JSON.stringify({ access_token: 'access-2', refresh_token: 'refresh-2' })
+    );
   });
 
   it('clears malformed OAuth token payloads instead of keeping them around', () => {
@@ -64,5 +70,51 @@ describe('oauthStorage', () => {
     expect(sessionStorage.getItem('tunet_auth_cache_v1')).toBeNull();
     expect(localStorage.getItem('tunet_auth_cache_v1')).toBeNull();
     expect(localStorage.getItem('ha_oauth_tokens')).toBeNull();
+  });
+
+  it('hydrates OAuth tokens from another tab into session storage', async () => {
+    const tokensPromise = requestTokensFromOtherTabs({ timeoutMs: 100 });
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'tunet_auth_sync_response_v1',
+        newValue: JSON.stringify({
+          type: 'oauth-token-response',
+          tokens: { access_token: 'shared-access', refresh_token: 'shared-refresh' },
+        }),
+      })
+    );
+
+    await expect(tokensPromise).resolves.toEqual({
+      access_token: 'shared-access',
+      refresh_token: 'shared-refresh',
+    });
+    expect(sessionStorage.getItem('tunet_auth_cache_v1')).toBe(
+      JSON.stringify({ access_token: 'shared-access', refresh_token: 'shared-refresh' })
+    );
+    expect(localStorage.getItem('tunet_auth_cache_v1')).toBe(
+      JSON.stringify({ access_token: 'shared-access', refresh_token: 'shared-refresh' })
+    );
+  });
+
+  it('notifies OAuth listeners when another tab provides tokens', async () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeToOAuthTokenChanges(listener);
+    const tokensPromise = requestTokensFromOtherTabs({ timeoutMs: 100 });
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'tunet_auth_sync_response_v1',
+        newValue: JSON.stringify({
+          type: 'oauth-token-response',
+          tokens: { access_token: 'shared-access-2', refresh_token: 'shared-refresh-2' },
+        }),
+      })
+    );
+
+    await tokensPromise;
+
+    expect(listener).toHaveBeenCalled();
+    unsubscribe();
   });
 });

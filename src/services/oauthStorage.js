@@ -2,6 +2,10 @@
 // Used as saveTokens / loadTokens callbacks for HAWS getAuth()
 
 const PRIMARY_STORAGE_SLOT = 'tunet_auth_cache_v1';
+const OAUTH_SYNC_REQUEST_KEY = 'tunet_auth_sync_request_v1';
+const OAUTH_SYNC_RESPONSE_KEY = 'tunet_auth_sync_response_v1';
+const OAUTH_SYNC_CHANNEL_NAME = 'tunet_auth_sync_channel_v1';
+const OAUTH_SYNC_TIMEOUT_MS = 400;
 const LEGACY_STORAGE_SLOT = String.fromCharCode(
   104,
   97,
@@ -19,6 +23,11 @@ const LEGACY_STORAGE_SLOT = String.fromCharCode(
   110,
   115
 );
+
+const tokenChangeListeners = new Set();
+let syncInitialized = false;
+let syncChannel = null;
+let pendingTokenRequest = null;
 
 const getSessionStorage = () => {
   try {
@@ -50,6 +59,18 @@ const clearPrimarySlots = () => {
   localStore?.removeItem(PRIMARY_STORAGE_SLOT);
 };
 
+const emitTokenChange = () => {
+  for (const listener of tokenChangeListeners) {
+    try {
+      listener();
+    } catch (error) {
+      console.error('Failed to notify OAuth token listeners:', error);
+    }
+  }
+};
+
+const hasTokenPayload = (tokens) => Boolean(tokens?.access_token || tokens?.refresh_token);
+
 const parseStoredTokens = (raw) => {
   if (!raw) return undefined;
   const parsed = JSON.parse(raw);
@@ -57,16 +78,86 @@ const parseStoredTokens = (raw) => {
   return parsed;
 };
 
+const readSessionTokens = () => {
+  const sessionStore = getSessionStorage();
+  const sessionRaw =
+    sessionStore?.getItem(PRIMARY_STORAGE_SLOT) || sessionStore?.getItem(LEGACY_STORAGE_SLOT);
+  return parseStoredTokens(sessionRaw);
+};
+
+const postSyncMessage = (key, payload) => {
+  if (syncChannel) {
+    syncChannel.postMessage(payload);
+    return;
+  }
+
+  const localStore = getLocalStorage();
+  if (!localStore) return;
+  localStore.setItem(key, JSON.stringify(payload));
+  localStore.removeItem(key);
+};
+
+const handleSyncPayload = (payload) => {
+  if (!payload || typeof payload !== 'object') return;
+
+  if (payload.type === 'oauth-token-request') {
+    const tokens = readSessionTokens() || loadTokens();
+    if (hasTokenPayload(tokens)) {
+      postSyncMessage(OAUTH_SYNC_RESPONSE_KEY, {
+        type: 'oauth-token-response',
+        tokens,
+      });
+    }
+    return;
+  }
+
+  if (payload.type === 'oauth-token-response' && hasTokenPayload(payload.tokens)) {
+    saveTokens(payload.tokens);
+  }
+};
+
+const ensureCrossTabSync = () => {
+  if (syncInitialized || typeof globalThis.window === 'undefined') return;
+  syncInitialized = true;
+
+  if (typeof globalThis.BroadcastChannel === 'function') {
+    syncChannel = new globalThis.BroadcastChannel(OAUTH_SYNC_CHANNEL_NAME);
+    const onMessage = (event) => handleSyncPayload(event?.data);
+    if (typeof syncChannel.addEventListener === 'function') {
+      syncChannel.addEventListener('message', onMessage);
+    } else {
+      syncChannel.onmessage = onMessage;
+    }
+  }
+
+  globalThis.window.addEventListener('storage', (event) => {
+    if (
+      (event.key !== OAUTH_SYNC_REQUEST_KEY && event.key !== OAUTH_SYNC_RESPONSE_KEY) ||
+      !event.newValue
+    ) {
+      return;
+    }
+
+    try {
+      handleSyncPayload(JSON.parse(event.newValue));
+    } catch {
+      // Ignore malformed sync payloads from other tabs.
+    }
+  });
+};
+
 export function saveTokens(tokenInfo) {
   try {
     const sessionStore = getSessionStorage();
+    const localStore = getLocalStorage();
     const payload = JSON.stringify(tokenInfo);
-    sessionStore?.setItem(PRIMARY_STORAGE_SLOT, payload);
     clearPrimarySlots();
     sessionStore?.setItem(PRIMARY_STORAGE_SLOT, payload);
+    localStore?.setItem(PRIMARY_STORAGE_SLOT, payload);
     clearLegacySlots();
+    emitTokenChange();
   } catch (error) {
-    console.error('Failed to save OAuth tokens to sessionStorage:', error);
+    console.error('Failed to save OAuth tokens to browser storage:', error);
   }
 }
 
@@ -94,7 +185,7 @@ export function loadTokens() {
       clearPrimarySlots();
       clearLegacySlots();
       if (parsed) {
-        sessionStore?.setItem(PRIMARY_STORAGE_SLOT, JSON.stringify(parsed));
+        saveTokens(parsed);
         return parsed;
       }
     }
@@ -109,9 +200,52 @@ export function clearOAuthTokens() {
   try {
     clearPrimarySlots();
     clearLegacySlots();
+    emitTokenChange();
   } catch (error) {
     console.error('Failed to clear OAuth tokens from browser storage:', error);
   }
+}
+
+export function subscribeToOAuthTokenChanges(listener) {
+  ensureCrossTabSync();
+  tokenChangeListeners.add(listener);
+  return () => {
+    tokenChangeListeners.delete(listener);
+  };
+}
+
+export function requestTokensFromOtherTabs({ timeoutMs = OAUTH_SYNC_TIMEOUT_MS } = {}) {
+  ensureCrossTabSync();
+
+  const existingTokens = loadTokens();
+  if (hasTokenPayload(existingTokens)) {
+    return Promise.resolve(existingTokens);
+  }
+
+  if (pendingTokenRequest) {
+    return pendingTokenRequest;
+  }
+
+  pendingTokenRequest = new Promise((resolve) => {
+    const unsubscribe = subscribeToOAuthTokenChanges(() => {
+      const tokens = loadTokens();
+      if (!hasTokenPayload(tokens)) return;
+      clearTimeout(timeoutId);
+      unsubscribe();
+      pendingTokenRequest = null;
+      resolve(tokens);
+    });
+
+    const timeoutId = globalThis.setTimeout(() => {
+      unsubscribe();
+      pendingTokenRequest = null;
+      resolve(loadTokens());
+    }, timeoutMs);
+
+    postSyncMessage(OAUTH_SYNC_REQUEST_KEY, { type: 'oauth-token-request' });
+  });
+
+  return pendingTokenRequest;
 }
 
 export function hasOAuthTokens() {

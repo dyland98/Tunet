@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { en, nb, nn, sv, de, zh, DEFAULT_LANGUAGE, normalizeLanguage } from './i18n';
 import { LayoutGrid } from './icons';
@@ -38,7 +38,11 @@ import {
 } from './hooks';
 
 import './styles/dashboard.css';
-import { hasOAuthTokens } from './services/oauthStorage';
+import {
+  hasOAuthTokens,
+  requestTokensFromOtherTabs,
+  subscribeToOAuthTokenChanges,
+} from './services/oauthStorage';
 
 /** @typedef {import('./types/dashboard').AppContentProps} AppContentProps */
 
@@ -778,6 +782,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
 
 export default function App() {
   const { config } = useConfig();
+  const [oauthTokenRevision, setOAuthTokenRevision] = useState(0);
   const [initialPage] = useState(() => {
     try {
       return localStorage.getItem('tunet_active_page') || 'home';
@@ -792,6 +797,27 @@ export default function App() {
   const hasAuth =
     config.token || (config.authMethod === 'oauth' && (hasOAuthTokens() || isOAuthCallback));
   const [showOnboarding, setShowOnboarding] = useState(() => !hasAuth);
+
+  useEffect(() => {
+    return subscribeToOAuthTokenChanges(() => {
+      setOAuthTokenRevision((revision) => revision + 1);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (config.authMethod !== 'oauth' || !config.url || isOAuthCallback) return;
+
+    if (hasOAuthTokens()) {
+      if (showOnboarding) {
+        setShowOnboarding(false);
+      }
+      return;
+    }
+
+    requestTokensFromOtherTabs().catch((error) => {
+      console.error('Failed to hydrate OAuth tokens from another tab:', error);
+    });
+  }, [config.authMethod, config.url, isOAuthCallback, oauthTokenRevision, showOnboarding]);
 
   // During onboarding, block token connections but ALLOW OAuth (including callbacks)
   const haConfig = showOnboarding
