@@ -533,8 +533,8 @@ export default function StatusPillsConfigModal({
                   >
                     <button
                       onClick={() => {
-                        setEditingPill(isEditing ? null : pill.id);
-                        if (!isEditing) setMobilePane('editor');
+                        setEditingPill(pill.id);
+                        setMobilePane('editor');
                       }}
                       className="flex w-full items-start gap-3 p-3 text-left"
                     >
