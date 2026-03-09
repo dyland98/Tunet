@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.14.3
+
+### Changed
+- Includes dashboard release `1.14.3`.
+- Improves mobile-friendly layouts for core card types (Alarm, Android TV, Car, Climate, Cover, Cost, Fan, Light, Media, Nordpool, Room, and Vacuum).
+
 ## 1.14.2
 
 ### Changed
