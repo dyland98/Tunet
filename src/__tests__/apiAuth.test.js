@@ -169,4 +169,28 @@ describe('getHomeAssistantRequestHeaders', () => {
     });
     expect(detachedAuth.refreshAccessToken).toHaveBeenCalledTimes(1);
   });
+
+  it('falls back to existing token when proactive OAuth refresh fails', async () => {
+    vi.resetModules();
+    localStorage.setItem('ha_auth_method', 'oauth');
+    localStorage.setItem('ha_url', 'https://ha.example');
+    loadTokensMock.mockReturnValue({
+      access_token: 'existing-valid-token',
+      refresh_token: 'refresh-token',
+      expires: Date.now() - 1_000,
+      hassUrl: 'https://ha.example',
+    });
+
+    getAuthMock.mockRejectedValue(new Error('fetch failed'));
+
+    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } = await import(
+      '../services/apiAuth'
+    );
+    setOAuthAuthProvider(null);
+
+    await expect(getValidatedHomeAssistantRequestHeadersAsync()).resolves.toEqual({
+      'x-ha-url': 'https://ha.example',
+      Authorization: 'Bearer existing-valid-token',
+    });
+  });
 });

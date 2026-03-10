@@ -337,6 +337,7 @@ export const createHomeAssistantAuthMiddleware = ({
     }
 
     let lastError = null;
+    let authError = null;
 
     for (const haUrl of haUrls) {
       try {
@@ -347,9 +348,12 @@ export const createHomeAssistantAuthMiddleware = ({
         return;
       } catch (error) {
         lastError = error;
+        if (!authError && isInvalidAuthError(error)) {
+          authError = error;
+        }
       }
     }
 
-    sendValidationFailure(res, lastError);
+    sendValidationFailure(res, authError || lastError);
   };
 };

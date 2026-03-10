@@ -272,4 +272,24 @@ describe('createHomeAssistantAuthMiddleware', () => {
     expect(req.authenticatedHaUrl).toBe('http://host.docker.internal:8123');
     expect(next).toHaveBeenCalledTimes(1);
   });
+
+  it('prioritises auth errors over reachability errors when multiple URLs are tried', async () => {
+    const validateHomeAssistantUser = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Invalid auth'))
+      .mockRejectedValueOnce(new Error('connect ECONNREFUSED 192.168.1.20:8123'));
+    const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
+    const req = createRequest({
+      authorization: 'Bearer token-1',
+      'x-ha-url': 'http://localhost:8123',
+    });
+    const res = createResponse();
+    const next = vi.fn();
+
+    await middleware(req, res, next);
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.code).toBe('HA_AUTH_INVALID');
+    expect(next).not.toHaveBeenCalled();
+  });
 });

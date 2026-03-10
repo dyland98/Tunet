@@ -237,11 +237,21 @@ export async function getHomeAssistantRequestHeadersAsync({ forceRefreshOAuth = 
   let accessToken = isOAuthAuthMethod() ? getCurrentOAuthAccessToken() : getStoredToken();
 
   if ((forceRefreshOAuth || shouldProactivelyRefreshOAuth()) && isOAuthAuthMethod()) {
-    await ensureOAuthAuthSession();
+    try {
+      await ensureOAuthAuthSession();
+    } catch (err) {
+      if (forceRefreshOAuth) throw err;
+      // Proactive session init failed; continue with existing token
+    }
   }
 
   if (forceRefreshOAuth || shouldProactivelyRefreshOAuth()) {
-    accessToken = await refreshOAuthAccessToken();
+    try {
+      accessToken = await refreshOAuthAccessToken();
+    } catch (err) {
+      if (forceRefreshOAuth) throw err;
+      // Proactive refresh failed; continue with existing token
+    }
   }
 
   if (haUrl) {
