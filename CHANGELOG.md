@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.14.8] — 2026-03-16
+
+### Changed
+- Refined mobile sensor card layouts with denser spacing for toggle states, numeric headers, and compact control rows.
+
+### Fixed
+- Kept mobile sensor card titles, toggle controls, and gauge/donut/bar visuals inside the card bounds instead of overlapping or spilling out on narrow screens.
+
+
 ## [1.14.7] — 2026-03-10
 
 ### Added
