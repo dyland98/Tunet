@@ -1034,6 +1034,7 @@
   "todo.title": "Aufgaben",
   "toast.serviceFailed": "Aktion fehlgeschlagen",
   "tooltip.addToGroup": "Zur Gruppe hinzufügen",
+  "tooltip.cycleSize": "Größe wechseln",
   "tooltip.editCard": "Karte bearbeiten",
   "tooltip.hideCard": "Karte verbergen",
   "tooltip.largeSize": "Vergrößern",

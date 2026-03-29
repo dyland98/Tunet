@@ -1048,6 +1048,7 @@
   "todo.title": "To-do",
   "toast.serviceFailed": "Action failed",
   "tooltip.addToGroup": "Add to group",
+  "tooltip.cycleSize": "Cycle size",
   "tooltip.editCard": "Edit card",
   "tooltip.hideCard": "Hide card",
   "tooltip.largeSize": "Make large",

@@ -1048,6 +1048,7 @@
   "todo.title": "Att göra",
   "toast.serviceFailed": "Åtgärden misslyckades",
   "tooltip.addToGroup": "Lägg till i grupp",
+  "tooltip.cycleSize": "Byt storlek",
   "tooltip.editCard": "Redigera kort",
   "tooltip.hideCard": "Dölj kort",
   "tooltip.largeSize": "Gör stor",

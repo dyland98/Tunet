@@ -1048,6 +1048,7 @@
   "todo.title": "待办事项",
   "toast.serviceFailed": "操作失败",
   "tooltip.addToGroup": "添加到群组",
+  "tooltip.cycleSize": "切换尺寸",
   "tooltip.editCard": "编辑卡",
   "tooltip.hideCard": "隐藏卡片",
   "tooltip.largeSize": "做大",
