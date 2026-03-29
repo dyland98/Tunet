@@ -4,6 +4,7 @@ import {
   ERR_INVALID_AUTH,
 } from 'home-assistant-js-websocket';
 import { WebSocket as NodeWebSocket } from 'ws';
+import { createHash } from 'node:crypto';
 
 const DEFAULT_CACHE_TTL_MS = Math.min(
   Math.max(Number(process.env.HA_AUTH_CACHE_TTL_MS) || 15_000, 1_000),
@@ -265,7 +266,8 @@ export const createValidatedHomeAssistantUserResolver = ({
   const cache = new Map();
 
   return async ({ haUrl, accessToken }) => {
-    const cacheKey = `${haUrl}::${accessToken}`;
+    const tokenHash = createHash('sha256').update(accessToken).digest('hex');
+    const cacheKey = `${haUrl}::${tokenHash}`;
     const now = Date.now();
     const cached = cache.get(cacheKey);
 
