@@ -375,6 +375,8 @@
   "form.showStatus": "Status anzeigen",
   "form.smallVersion": "Kleine Version",
   "ha.unavailable": "Home Assistant ist derzeit nicht verfügbar, Daten könnten veraltet sein, aber Karten werden noch angezeigt.",
+  "ha.disconnectedFor": "Getrennt seit {time}",
+  "ha.retry": "Verbindung erneut versuchen",
   "header.addHeader": "Kopfzeile hinzufügen",
   "header.clockFormat": "Uhrzeitformat",
   "header.clockFormat.12h": "12-Stunden (AM/PM)",

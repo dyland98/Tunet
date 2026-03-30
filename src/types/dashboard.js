@@ -72,6 +72,7 @@
  * @property {string} activeUrl
  * @property {Record<string, unknown> | null} haConfig
  * @property {number} lastEntityUpdateAt
+ * @property {number | null} disconnectedSince
  * @property {import('react').MutableRefObject<unknown>} authRef
  * @property {{ id?: string, name?: string, is_owner?: boolean, is_admin?: boolean } | null} haUser
  */

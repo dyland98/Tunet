@@ -380,6 +380,8 @@
   "form.showStatus": "Show status",
   "form.smallVersion": "Small version",
   "ha.unavailable": "Home Assistant is currently unavailable. Data may be outdated, but cards are still shown.",
+  "ha.disconnectedFor": "Disconnected for {time}",
+  "ha.retry": "Retry connection",
   "header.addHeader": "Add header",
   "header.clockFormat": "Clock format",
   "header.clockFormat.12h": "12-hour (AM/PM)",

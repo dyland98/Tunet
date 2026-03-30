@@ -22,6 +22,37 @@ import { isEntityDataStale } from '../utils';
 /** @typedef {import('../types/dashboard').HomeAssistantProviderProps} HomeAssistantProviderProps */
 /** @typedef {Omit<HomeAssistantContextValue, 'entities'>} HomeAssistantMetaValue */
 
+const ENTITY_CACHE_KEY = 'tunet_entity_snapshot';
+const ENTITY_CACHE_MAX_AGE_MS = 5 * 60_000; // 5 minutes — stale snapshots are discarded
+
+/** Read cached entity snapshot from sessionStorage (returns {} if absent/expired). */
+function loadCachedEntities() {
+  try {
+    const raw = globalThis.sessionStorage.getItem(ENTITY_CACHE_KEY);
+    if (!raw) return {};
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > ENTITY_CACHE_MAX_AGE_MS) {
+      globalThis.sessionStorage.removeItem(ENTITY_CACHE_KEY);
+      return {};
+    }
+    return data && typeof data === 'object' ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Persist entity snapshot to sessionStorage (best-effort, never throws). */
+function saveCachedEntities(entities) {
+  try {
+    globalThis.sessionStorage.setItem(
+      ENTITY_CACHE_KEY,
+      JSON.stringify({ ts: Date.now(), data: entities })
+    );
+  } catch {
+    // Storage full / private mode — ignore silently
+  }
+}
+
 /** @type {import('react').Context<EntityMap | null>} */
 const HomeAssistantEntitiesContext = createContext(null);
 /** @type {import('react').Context<HomeAssistantMetaValue | null>} */
@@ -59,9 +90,10 @@ export const useHomeAssistant = () => {
  */
 /** @returns {[EntityMap, (updatedEntities: EntityMap) => void]} */
 function useThrottledEntities() {
-  const [entities, setEntities] = useState({});
+  const [entities, setEntities] = useState(loadCachedEntities);
   const pendingRef = useRef(null);
   const rafRef = useRef(null);
+  const saveTimerRef = useRef(null);
 
   const setEntitiesThrottled = useCallback((updatedEntities) => {
     pendingRef.current = updatedEntities;
@@ -70,6 +102,13 @@ function useThrottledEntities() {
         rafRef.current = null;
         if (pendingRef.current) {
           setEntities(pendingRef.current);
+          // Debounce sessionStorage writes to once per 10 s
+          if (saveTimerRef.current == null) {
+            saveTimerRef.current = setTimeout(() => {
+              saveTimerRef.current = null;
+              if (pendingRef.current) saveCachedEntities(pendingRef.current);
+            }, 10_000);
+          }
         }
       });
     }
@@ -79,6 +118,7 @@ function useThrottledEntities() {
   useEffect(() => {
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      if (saveTimerRef.current != null) clearTimeout(saveTimerRef.current);
     };
   }, []);
 
@@ -494,6 +534,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       haConfig,
       entityDataStale,
       lastEntityUpdateAt,
+      disconnectedSince,
       authRef,
       haUser,
     }),
@@ -508,6 +549,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       haConfig,
       entityDataStale,
       lastEntityUpdateAt,
+      disconnectedSince,
       haUser,
     ]
   );

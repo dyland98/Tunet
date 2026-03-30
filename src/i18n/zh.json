@@ -380,6 +380,8 @@
   "form.showStatus": "显示状态",
   "form.smallVersion": "小版",
   "ha.unavailable": "家庭助理目前不可用。数据可能已过时，但卡片仍会显示。",
+  "ha.disconnectedFor": "已断开 {time}",
+  "ha.retry": "重试连接",
   "header.addHeader": "添加标题",
   "header.clockFormat": "时钟格式",
   "header.clockFormat.12h": "12 小时（上午/下午）",

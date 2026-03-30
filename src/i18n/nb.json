@@ -885,6 +885,8 @@
   "statusPills.filterContains": "Inneholder",
   "statusPills.filterRegex": "Regex",
   "ha.unavailable": "Home Assistant er utilgjengelig akkurat nå. Data kan være utdaterte, men kortene blir vist.",
+  "ha.disconnectedFor": "Frakoblet i {time}",
+  "ha.retry": "Prøv tilkobling på nytt",
   "statusPills.yourPills": "Dine Pills",
   "statusPills.addNewPill": "Legg til ny pille",
   "statusPills.newPill": "Ny pille",

@@ -380,6 +380,8 @@
   "form.showStatus": "Vis status",
   "form.smallVersion": "Liten versjon",
   "ha.unavailable": "Home Assistant er for tida utilgjengeleg. Data kan vera utdatert, men kort blir framleis vist.",
+  "ha.disconnectedFor": "Fråkopla i {time}",
+  "ha.retry": "Prøv tilkopling på nytt",
   "header.addHeader": "Legg til topptekst",
   "header.clockFormat": "Klokkeformat",
   "header.clockFormat.12h": "12-timars (AM/PM)",

@@ -67,6 +67,7 @@ export {
   CloudRain,
   Power,
   Wifi,
+  WifiOff,
   Lock,
   Unlock,
   Shield,
