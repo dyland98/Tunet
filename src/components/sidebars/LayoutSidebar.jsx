@@ -49,6 +49,12 @@ export default function LayoutSidebar({
   setCardBorderOpacity,
   cardBgColor,
   setCardBgColor,
+  cardMaterial,
+  setCardMaterial,
+  density,
+  setDensity,
+  cardScale,
+  setCardScale,
   sectionSpacing,
   updateSectionSpacing,
   activePage,
@@ -484,6 +490,101 @@ export default function LayoutSidebar({
 
         {/* ── Card Style Section ── */}
         <Section id="cards" icon={Eye} title={t('settings.layoutCards')}>
+          {/* Card Material */}
+          <div className="space-y-2">
+            <span
+              className="text-[11px] font-bold tracking-wider uppercase"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {t('settings.cardMaterial')}
+            </span>
+            <div
+              className="flex gap-1 rounded-xl border p-0.5"
+              style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+            >
+              {[
+                { value: 'glass', label: t('settings.materialGlass') },
+                { value: 'flat', label: t('settings.materialFlat') },
+                { value: 'neumorphic', label: t('settings.materialNeumorphic') },
+                { value: 'elevated', label: t('settings.materialElevated') },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setCardMaterial(opt.value)}
+                  className="flex-1 rounded-lg px-1 py-1.5 text-center text-[10px] font-bold tracking-wider uppercase transition-all"
+                  style={
+                    cardMaterial === opt.value
+                      ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }
+                      : { color: 'var(--text-secondary)', backgroundColor: 'transparent' }
+                  }
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Density */}
+          <div className="space-y-2">
+            <span
+              className="text-[11px] font-bold tracking-wider uppercase"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {t('settings.density')}
+            </span>
+            <div
+              className="flex gap-1 rounded-xl border p-0.5"
+              style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+            >
+              {[
+                { value: 'compact', label: t('settings.densityCompact') },
+                { value: 'comfortable', label: t('settings.densityComfortable') },
+                { value: 'spacious', label: t('settings.densitySpacious') },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setDensity(opt.value)}
+                  className="flex-1 rounded-lg px-1 py-1.5 text-center text-[10px] font-bold tracking-wider uppercase transition-all"
+                  style={
+                    density === opt.value
+                      ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }
+                      : { color: 'var(--text-secondary)', backgroundColor: 'transparent' }
+                  }
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Card Scale */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span
+                className="text-[11px] font-bold tracking-wider uppercase"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {t('settings.cardScale')}
+              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className="font-mono text-[11px] tabular-nums"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {cardScale}%
+                </span>
+                {cardScale !== 100 && <ResetButton onClick={() => setCardScale(100)} />}
+              </div>
+            </div>
+            <M3Slider
+              min={60}
+              max={120}
+              step={5}
+              value={cardScale}
+              onChange={(e) => setCardScale(Number(e.target.value))}
+            />
+          </div>
+
           {/* Border Radius */}
           <div>
             <div className="mb-2 flex items-center justify-between">

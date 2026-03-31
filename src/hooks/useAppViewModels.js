@@ -67,6 +67,12 @@ export function useAppViewModels(params) {
     setCardBorderOpacity,
     cardBgColor,
     setCardBgColor,
+    cardMaterial,
+    setCardMaterial,
+    density,
+    setDensity,
+    cardScale,
+    setCardScale,
     inactivityTimeout,
     setInactivityTimeout,
     setGridGapH,
@@ -211,8 +217,9 @@ export function useAppViewModels(params) {
       gridGapH,
       gridColCount,
       isCompactCards,
+      cardScale,
     }),
-    [gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards]
+    [gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards, cardScale]
   );
 
   const dashboardGridCards = useMemo(
@@ -298,6 +305,12 @@ export function useAppViewModels(params) {
       setCardBorderOpacity,
       cardBgColor,
       setCardBgColor,
+      cardMaterial,
+      setCardMaterial,
+      density,
+      setDensity,
+      cardScale,
+      setCardScale,
       inactivityTimeout,
       setInactivityTimeout,
     }),
@@ -318,6 +331,12 @@ export function useAppViewModels(params) {
       setCardBorderOpacity,
       cardBgColor,
       setCardBgColor,
+      cardMaterial,
+      setCardMaterial,
+      density,
+      setDensity,
+      cardScale,
+      setCardScale,
       inactivityTimeout,
       setInactivityTimeout,
     ]

@@ -175,6 +175,31 @@ export const ConfigProvider = ({ children }) => {
     }
   });
 
+  const [cardMaterial, setCardMaterial] = useState(() => {
+    try {
+      return localStorage.getItem('tunet_card_material') || 'glass';
+    } catch {
+      return 'glass';
+    }
+  });
+
+  const [density, setDensity] = useState(() => {
+    try {
+      return localStorage.getItem('tunet_density') || 'comfortable';
+    } catch {
+      return 'comfortable';
+    }
+  });
+
+  const [cardScale, setCardScale] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tunet_card_scale');
+      return saved ? Number(saved) : 100;
+    } catch {
+      return 100;
+    }
+  });
+
   const [appFont, setAppFont] = useState(() => {
     try {
       const saved = localStorage.getItem('tunet_app_font');
@@ -448,6 +473,34 @@ export const ConfigProvider = ({ children }) => {
 
   useEffect(() => {
     try {
+      localStorage.setItem('tunet_card_material', cardMaterial);
+    } catch {}
+    if (cardMaterial && cardMaterial !== 'glass') {
+      document.documentElement.dataset.cardMaterial = cardMaterial;
+    } else {
+      delete document.documentElement.dataset.cardMaterial;
+    }
+  }, [cardMaterial]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tunet_density', density);
+    } catch {}
+    if (density && density !== 'comfortable') {
+      document.documentElement.dataset.density = density;
+    } else {
+      delete document.documentElement.dataset.density;
+    }
+  }, [density]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tunet_card_scale', String(cardScale));
+    } catch {}
+  }, [cardScale]);
+
+  useEffect(() => {
+    try {
       localStorage.setItem('tunet_app_font', appFont);
     } catch {}
   }, [appFont]);
@@ -557,6 +610,12 @@ export const ConfigProvider = ({ children }) => {
     setCardBorderOpacity,
     cardBgColor,
     setCardBgColor,
+    cardMaterial,
+    setCardMaterial,
+    density,
+    setDensity,
+    cardScale,
+    setCardScale,
     appFont,
     setAppFont,
     config,
