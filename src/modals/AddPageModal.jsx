@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, LayoutGrid, Music, Speaker, Lightbulb, Battery, Home } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+
+const SELECTED_CONTAINER = 'bg-[var(--accent-bg)] border-[var(--accent-color)]';
+const SELECTED_TEXT = 'text-[var(--accent-color)]';
+
+const PageTypeButton = ({ type, icon: Icon, label, isActive, onSelect }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(type)}
+    className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-bold tracking-widest whitespace-nowrap uppercase transition-colors duration-150 ease-out focus-visible:outline-none ${isActive ? `${SELECTED_CONTAINER} ${SELECTED_TEXT}` : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+  >
+    <Icon className="h-4 w-4" /> {label}
+  </button>
+);
 
 export default function AddPageModal({
   isOpen,
@@ -56,49 +69,54 @@ export default function AddPageModal({
           {t('modal.addPage.title')}
         </h3>
 
-        <div className="mb-6 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab('standard')}
-            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'standard' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {t('page.create')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('media')}
-            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'media' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {t('addCard.type.media')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('sonos')}
-            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'sonos' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {t('addCard.type.sonos')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('lights')}
-            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'lights' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {t('addCard.type.light')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('battery')}
-            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'battery' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {t('addCard.type.battery')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('roomExplorer')}
-            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'roomExplorer' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {t('addCard.type.roomExplorer')}
-          </button>
+        <div className="mb-6">
+          <p className="mb-2 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+            {t('addCard.cardType') || 'Type'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <PageTypeButton
+              type="standard"
+              icon={LayoutGrid}
+              label={t('page.create')}
+              isActive={activeTab === 'standard'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="media"
+              icon={Music}
+              label={t('addCard.type.media')}
+              isActive={activeTab === 'media'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="sonos"
+              icon={Speaker}
+              label={t('addCard.type.sonos')}
+              isActive={activeTab === 'sonos'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="lights"
+              icon={Lightbulb}
+              label={t('addCard.type.light')}
+              isActive={activeTab === 'lights'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="battery"
+              icon={Battery}
+              label={t('addCard.type.battery')}
+              isActive={activeTab === 'battery'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="roomExplorer"
+              icon={Home}
+              label={t('addCard.type.roomExplorer')}
+              isActive={activeTab === 'roomExplorer'}
+              onSelect={setActiveTab}
+            />
+          </div>
         </div>
 
         <div className="space-y-6">

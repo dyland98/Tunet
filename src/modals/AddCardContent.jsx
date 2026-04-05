@@ -1063,7 +1063,7 @@ function AddCardContent({
                 <TypeButton
                   type="room"
                   icon={Home}
-                  label={`${getLabel('addCard.type.room', 'Room')}${betaSuffix}`}
+                  label={getLabel('addCard.type.room', 'Room')}
                   isActive={addCardType === 'room'}
                   onSelect={setAddCardType}
                 />
