@@ -18,9 +18,19 @@ export default function EditToolbar({
   setShowHeaderEditModal,
   connected,
   updateCount,
+  isMobile,
   t,
 }) {
   const { pageSettings } = usePages();
+
+  const handleToggleEdit = () => {
+    const currentSettings = pageSettings[activePage];
+    if (currentSettings?.hidden) setActivePage('home');
+    if (editMode && typeof window !== 'undefined') {
+      window.dispatchEvent(new window.CustomEvent('tunet:edit-done'));
+    }
+    setEditMode(!editMode);
+  };
 
   return (
     <div className="relative flex flex-shrink-0 items-center justify-end gap-6 overflow-visible pb-2">
@@ -36,15 +46,9 @@ export default function EditToolbar({
         </button>
       )}
 
+      {!isMobile && (
       <button
-        onClick={() => {
-          const currentSettings = pageSettings[activePage];
-          if (currentSettings?.hidden) setActivePage('home');
-          if (editMode && typeof window !== 'undefined') {
-            window.dispatchEvent(new window.CustomEvent('tunet:edit-done'));
-          }
-          setEditMode(!editMode);
-        }}
+        onClick={handleToggleEdit}
         className={`group rounded-full border p-2 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:outline-none ${editMode ? 'hover: border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)] hover:text-white hover:shadow-lg' : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-white/10 hover:text-white'}`}
         title={editMode ? t('nav.done') : t('menu.edit')}
         aria-label={editMode ? t('nav.done') : t('menu.edit')}
@@ -56,6 +60,7 @@ export default function EditToolbar({
           <Edit2 className="h-5 w-5 transition-transform duration-300 group-hover:rotate-12" />
         )}
       </button>
+      )}
 
       <div className="relative">
         <SettingsDropdown
@@ -66,6 +71,9 @@ export default function EditToolbar({
           onOpenTheme={() => setShowThemeSidebar(true)}
           onOpenLayout={() => setShowLayoutSidebar(true)}
           onOpenHeader={() => setShowHeaderEditModal(true)}
+          onToggleEdit={isMobile ? handleToggleEdit : undefined}
+          editMode={editMode}
+          isMobile={isMobile}
           t={t}
         />
         {updateCount > 0 && (

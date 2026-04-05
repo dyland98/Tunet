@@ -787,6 +787,7 @@
   "header.showClock": "Vis klokke",
   "header.showClockOnMobile": "Vis klokke på mobil",
   "header.showDate": "Vis dato",
+  "header.showPagePillLabelsOnMobile": "Vis sidenavn på mobil",
   "header.headerLayout": "Oppsett",
   "header.headerStyle": "Stil",
   "header.styleClassic": "Klassisk",

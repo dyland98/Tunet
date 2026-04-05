@@ -1,12 +1,15 @@
 // Dropdown Menu Component that looks nice
 import React, { useState, useRef, useEffect } from 'react';
-import { Settings, Palette, LayoutGrid, Server, Type } from '../../icons';
+import { Settings, Palette, LayoutGrid, Server, Type, Edit2, Check } from '../../icons';
 
 export default function SettingsDropdown({
   onOpenSettings,
   onOpenTheme,
   onOpenLayout,
   onOpenHeader,
+  onToggleEdit,
+  editMode,
+  isMobile,
   t,
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,6 +55,29 @@ export default function SettingsDropdown({
         data-testid="settings-dropdown-menu"
       >
         <div className="space-y-1">
+          {isMobile && onToggleEdit && (
+            <>
+              <button
+                onClick={() => handleSelect(onToggleEdit)}
+                className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/10"
+                aria-label={editMode ? t('nav.done') : t('menu.edit')}
+              >
+                <div className={`rounded-lg p-2 transition-colors ${
+                  editMode
+                    ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] group-hover:bg-[var(--accent-color)] group-hover:text-white'
+                    : 'bg-orange-500/10 text-orange-400 group-hover:bg-orange-500 group-hover:text-white'
+                }`}>
+                  {editMode ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[var(--text-primary)] group-hover:text-white">
+                    {editMode ? t('nav.done') : t('menu.edit')}
+                  </p>
+                </div>
+              </button>
+              <div className="mx-2 my-1 h-px bg-white/5" />
+            </>
+          )}
           <button
             onClick={() => handleSelect(onOpenTheme)}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/10"

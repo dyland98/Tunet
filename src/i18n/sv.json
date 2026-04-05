@@ -417,6 +417,7 @@
   "header.showClock": "Visa klocka",
   "header.showClockOnMobile": "Visa klocka på mobil",
   "header.showDate": "Visa datum",
+  "header.showPagePillLabelsOnMobile": "Visa sidetiketter på mobil",
   "header.headerLayout": "Layout",
   "header.headerStyle": "Stil",
   "header.styleClassic": "Klassisk",

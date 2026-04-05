@@ -226,6 +226,7 @@ export default function DashboardLayout(props) {
             setShowHeaderEditModal={guardedSetShowHeaderEditModal}
             connected={connected}
             updateCount={updateCount}
+            isMobile={isMobile}
             t={t}
           />
         </div>

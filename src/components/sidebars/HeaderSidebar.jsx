@@ -539,6 +539,11 @@ export default function HeaderSidebar({
               value={setting('showDate', true)}
               onChange={(v) => update('showDate', v)}
             />
+            <Toggle
+              label={t('header.showPagePillLabelsOnMobile')}
+              value={setting('showPagePillLabelsOnMobile', false)}
+              onChange={(v) => update('showPagePillLabelsOnMobile', v)}
+            />
           </div>
 
           <div

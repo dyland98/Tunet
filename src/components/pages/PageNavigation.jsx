@@ -124,8 +124,9 @@ export default function PageNavigation({
   setEditingPage,
   t,
 }) {
-  const { pagesConfig, persistConfig, pageSettings } = usePages();
+  const { pagesConfig, persistConfig, pageSettings, headerSettings } = usePages();
   const { setShowAddPageModal } = useModalState();
+  const showLabelsOnMobile = headerSettings?.showPagePillLabelsOnMobile ?? false;
   const [dragOverId, setDragOverId] = useState(null);
   const [showManager, setShowManager] = useState(false);
   const pageOrder = pagesConfig?.pages || [];
@@ -199,7 +200,7 @@ export default function PageNavigation({
               } ${editMode && isHidden ? 'scale-95 border-gray-500 opacity-50' : ''} ${editMode ? 'cursor-move' : ''} ${isDragOver ? 'border-[var(--accent-color)]' : ''}`}
             >
               <Icon className={`h-4 w-4 ${editMode && isHidden ? 'animate-pulse' : ''}`} />
-              <span className="hidden sm:inline">{label}</span>
+              <span className={showLabelsOnMobile ? undefined : 'hidden sm:inline'}>{label}</span>
             </button>
           );
         })}
