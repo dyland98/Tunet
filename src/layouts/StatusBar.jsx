@@ -1,23 +1,18 @@
 import { Edit2 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
 import { useHomeAssistant, useModalState, usePages } from '../contexts';
+import { isSonosMediaEntity } from '../utils';
 
 /**
  * StatusBar component showing various status indicators
  * @param {Object} props
- * @param {Object} props.entities - Home Assistant entities
- * @param {Date} props.now - Current time
- * @param {Function} props.setActiveMediaId - Set active media player
- * @param {Function} props.setActiveMediaGroupKey - Set media group key
- * @param {Function} props.setActiveMediaModal - Set active media modal
- * @param {Function} props.setShowAlarmModal - Open alarm modal
- * @param {Function} props.setShowUpdateModal - Open update modal
+ * @param {boolean} [props.editMode] - Whether in edit mode
  * @param {Function} props.t - Translation function
- * @param {Function} props.isSonosActive - Check if Sonos is active
- * @param {Function} props.isMediaActive - Check if media is active
- * @param {Function} props.getA - Get entity attribute
- * @param {Function} props.getEntityImageUrl - Get entity image URL
- * @param {Array} props.statusPillsConfig - Status pills configuration
+ * @param {(entity: any) => boolean} [props.isSonosActive] - Check if Sonos is active
+ * @param {(entity: any) => boolean} [props.isMediaActive] - Check if media is active
+ * @param {(entityId: string, attr: string, fallback?: any) => any} [props.getA] - Get entity attribute
+ * @param {(url?: string) => string|null} [props.getEntityImageUrl] - Get entity image URL
+ * @param {boolean} [props.isMobile] - Whether on mobile viewport
  */
 export default function StatusBar({
   editMode,
@@ -40,21 +35,11 @@ export default function StatusBar({
     setShowStatusPillsConfig,
   } = useModalState();
 
-  const isSonosEntity = (entity) => {
-    if (!entity) return false;
-    const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
-    const platform = (entity.attributes?.platform || '').toLowerCase();
-    if (manufacturer.includes('sonos') || platform.includes('sonos')) return true;
-    const entityId = (entity.entity_id || '').toLowerCase();
-    const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
-    return entityId.includes('sonos') || friendlyName.includes('sonos');
-  };
-
   const getSonosEntities = () =>
     Object.keys(entities)
       .filter((id) => id.startsWith('media_player.'))
       .map((id) => entities[id])
-      .filter(isSonosEntity);
+      .filter(isSonosMediaEntity);
 
   const hasSonosMediaMetadata = (entity) => {
     if (!entity) return false;
@@ -112,7 +97,7 @@ export default function StatusBar({
 
   return (
     <div className="mt-0 flex w-full items-center justify-between font-sans">
-      <div className={`flex min-w-0 flex-wrap items-center ${isMobile ? 'gap-1.5' : 'gap-2.5'}`}>
+      <div className={`flex min-w-0 items-center ${isMobile ? 'gap-1.5 overflow-x-auto overflow-y-hidden scrollbar-hide' : 'flex-wrap gap-2.5'}`}>
         {/* Edit button (only in edit mode) - at first position */}
         {editMode && (
           <button

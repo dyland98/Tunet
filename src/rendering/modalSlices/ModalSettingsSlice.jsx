@@ -48,6 +48,12 @@ export function ModalSettingsSlice({
     setCardBorderOpacity,
     cardBgColor,
     setCardBgColor,
+    cardMaterial,
+    setCardMaterial,
+    density,
+    setDensity,
+    cardScale,
+    setCardScale,
     inactivityTimeout,
     setInactivityTimeout,
   } = appearance;
@@ -199,6 +205,12 @@ export function ModalSettingsSlice({
           setCardBorderOpacity={setCardBorderOpacity}
           cardBgColor={cardBgColor}
           setCardBgColor={setCardBgColor}
+          cardMaterial={cardMaterial}
+          setCardMaterial={setCardMaterial}
+          density={density}
+          setDensity={setDensity}
+          cardScale={cardScale}
+          setCardScale={setCardScale}
           sectionSpacing={sectionSpacing}
           updateSectionSpacing={updateSectionSpacing}
           activePage={core.activePage}

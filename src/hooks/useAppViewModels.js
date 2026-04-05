@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 
+/** @param {any} params */
 export function useAppViewModels(params) {
   const {
     activePage,
@@ -8,6 +9,9 @@ export function useAppViewModels(params) {
     editMode,
     isMediaPage,
     isSonosPage,
+    isLightsPage,
+    isBatteryPage,
+    isRoomExplorerPage,
     entities,
     conn,
     isSonosActive,
@@ -66,6 +70,12 @@ export function useAppViewModels(params) {
     setCardBorderOpacity,
     cardBgColor,
     setCardBgColor,
+    cardMaterial,
+    setCardMaterial,
+    density,
+    setDensity,
+    cardScale,
+    setCardScale,
     inactivityTimeout,
     setInactivityTimeout,
     setGridGapH,
@@ -111,6 +121,9 @@ export function useAppViewModels(params) {
     createPage,
     createMediaPage,
     createSonosPage,
+    createLightsPage,
+    createBatteryPage,
+    createRoomExplorerPage,
     deletePage,
     removeCard,
     persistPageSettings,
@@ -173,8 +186,11 @@ export function useAppViewModels(params) {
       editMode,
       isMediaPage,
       isSonosPage,
+      isLightsPage,
+      isBatteryPage,
+      isRoomExplorerPage,
     }),
-    [activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage]
+    [activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage, isLightsPage, isBatteryPage, isRoomExplorerPage]
   );
 
   const dashboardGridMedia = useMemo(
@@ -210,8 +226,9 @@ export function useAppViewModels(params) {
       gridGapH,
       gridColCount,
       isCompactCards,
+      cardScale,
     }),
-    [gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards]
+    [gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards, cardScale]
   );
 
   const dashboardGridCards = useMemo(
@@ -297,6 +314,12 @@ export function useAppViewModels(params) {
       setCardBorderOpacity,
       cardBgColor,
       setCardBgColor,
+      cardMaterial,
+      setCardMaterial,
+      density,
+      setDensity,
+      cardScale,
+      setCardScale,
       inactivityTimeout,
       setInactivityTimeout,
     }),
@@ -317,6 +340,12 @@ export function useAppViewModels(params) {
       setCardBorderOpacity,
       cardBgColor,
       setCardBgColor,
+      cardMaterial,
+      setCardMaterial,
+      density,
+      setDensity,
+      cardScale,
+      setCardScale,
       inactivityTimeout,
       setInactivityTimeout,
     ]
@@ -418,6 +447,9 @@ export function useAppViewModels(params) {
       createPage,
       createMediaPage,
       createSonosPage,
+      createLightsPage,
+      createBatteryPage,
+      createRoomExplorerPage,
       deletePage,
       removeCard,
       pageSettings,
@@ -438,6 +470,9 @@ export function useAppViewModels(params) {
       createPage,
       createMediaPage,
       createSonosPage,
+      createLightsPage,
+      createBatteryPage,
+      createRoomExplorerPage,
       deletePage,
       removeCard,
       pageSettings,

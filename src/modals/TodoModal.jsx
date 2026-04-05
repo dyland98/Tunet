@@ -9,7 +9,7 @@ import AccessibleModalShell from '../components/ui/AccessibleModalShell';
  *
  * @param {Object} props
  * @param {boolean} props.show - Whether modal is visible
- * @param {Function} props.onClose - Close handler
+ * @param {(e?: any) => void} props.onClose - Close handler
  * @param {Object} props.conn - Home Assistant WebSocket connection
  * @param {Object} props.entities - All HA entities
  * @param {Object} props.settings - Card settings (contains todoEntityId)
@@ -160,7 +160,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
           <div className="min-w-0 flex-1">
             <h3
               id={modalTitleId}
-              className="truncate text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+              className="truncate pr-1 text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
             >
               {entityName || translate('todo.title') || 'To-do'}
             </h3>

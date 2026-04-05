@@ -386,7 +386,10 @@ export const PageProvider = ({ children }) => {
 
   const [headerSettings, setHeaderSettings] = useState(() => {
     const saved = readJSON('tunet_header_settings');
-    return saved || { showTitle: true, showClock: true, showClockOnMobile: true, showDate: true };
+    return saved || {
+      showTitle: true, showClock: true, showClockOnMobile: true, showDate: true,
+      headerStyle: 'classic', batteryVariant: 'glass', showBatteryNub: true,
+    };
   });
 
   const updateHeaderSettings = (newSettings) => {

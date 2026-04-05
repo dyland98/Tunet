@@ -332,6 +332,204 @@ html[data-theme='flat'] .popup-surface-hover {
   box-shadow: none !important;
 }
 
+/* ── Battery Bar (header topbar variant) ── */
+.battery-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.5rem 0.25rem 0.5rem 1.5rem;
+  transition: background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  animation: editControlsIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.battery-bar__body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 3rem;
+  min-width: 0;
+}
+.battery-bar__nub {
+  flex-shrink: 0;
+  width: 6px;
+  height: 40%;
+  min-height: 18px;
+  border-radius: 0 4px 4px 0;
+  margin-left: 0.5rem;
+  margin-right: -0.25rem;
+  transition: background 0.25s ease;
+}
+
+/* Variants */
+.battery-bar--glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+}
+.battery-bar--glass .battery-bar__nub {
+  background: var(--glass-border);
+}
+
+.battery-bar--solid {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+.battery-bar--solid .battery-bar__nub {
+  background: var(--card-border);
+}
+
+.battery-bar--outline {
+  background: transparent;
+  border: 2px solid var(--glass-border);
+}
+.battery-bar--outline .battery-bar__nub {
+  background: var(--glass-border);
+}
+
+/* Mobile */
+.battery-bar--mobile {
+  padding: 0.375rem 0.125rem 0.375rem 1rem;
+  border-radius: 1.5rem;
+}
+.battery-bar--mobile .battery-bar__body {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+}
+.battery-bar--mobile .battery-bar__nub {
+  display: none;
+}
+
+/* Flat theme override */
+html[data-theme='flat'] .battery-bar {
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+}
+html[data-theme='flat'] .battery-bar__nub {
+  background: var(--card-border);
+}
+
+/* ── Card Material Variants ── */
+
+/* Neumorphic: soft 3D embossed look — opaque bg required to avoid corner artifacts */
+html[data-card-material='neumorphic'] .touch-feedback,
+html[data-card-material='neumorphic'] [style*='--card-bg'] {
+  background-color: var(--bg-secondary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow:
+    6px 6px 14px rgba(0, 0, 0, 0.25),
+    -4px -4px 10px rgba(255, 255, 255, 0.04) !important;
+  border-color: transparent !important;
+}
+html[data-card-material='neumorphic'] .touch-feedback:hover {
+  box-shadow:
+    8px 8px 18px rgba(0, 0, 0, 0.3),
+    -5px -5px 12px rgba(255, 255, 255, 0.06) !important;
+}
+html[data-theme='light'][data-card-material='neumorphic'] .touch-feedback,
+html[data-theme='light'][data-card-material='neumorphic'] [style*='--card-bg'] {
+  background-color: #ffffff !important;
+  box-shadow:
+    6px 6px 14px rgba(0, 0, 0, 0.08),
+    -4px -4px 10px rgba(255, 255, 255, 0.6) !important;
+}
+html[data-theme='light'][data-card-material='neumorphic'] .touch-feedback:hover {
+  box-shadow:
+    8px 8px 18px rgba(0, 0, 0, 0.12),
+    -5px -5px 12px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Flat: no shadows, solid borders, no blur */
+html[data-card-material='flat'] .touch-feedback,
+html[data-card-material='flat'] [style*='--card-bg'] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-color: var(--glass-border) !important;
+  border-width: 1px !important;
+}
+html[data-card-material='flat'] .touch-feedback:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: none !important;
+}
+
+/* Elevated: strong drop shadow, floating look — opaque bg + no blur to avoid corner artifacts */
+html[data-card-material='elevated'] .touch-feedback,
+html[data-card-material='elevated'] [style*='--card-bg'] {
+  background-color: var(--bg-secondary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.2),
+    0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  border-color: transparent !important;
+}
+html[data-card-material='elevated'] .touch-feedback:hover {
+  transform: translateY(-4px) scale(1.01) !important;
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.28),
+    0 4px 10px rgba(0, 0, 0, 0.12) !important;
+}
+html[data-theme='light'][data-card-material='elevated'] .touch-feedback,
+html[data-theme='light'][data-card-material='elevated'] [style*='--card-bg'] {
+  background-color: #ffffff !important;
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+html[data-theme='light'][data-card-material='elevated'] .touch-feedback:hover {
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.12),
+    0 4px 10px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ── Density Modes ── */
+
+/* Compact: tighter spacing, smaller text */
+html[data-density='compact'] {
+  --density-gap-scale: 0.5;
+  --density-padding-scale: 0.75;
+  --density-font-scale: 0.9;
+}
+html[data-density='compact'] .touch-feedback {
+  padding: 0.5rem !important;
+}
+html[data-density='compact'] .touch-feedback h2,
+html[data-density='compact'] .touch-feedback h3 {
+  font-size: 0.85em;
+}
+html[data-density='compact'] .touch-feedback p,
+html[data-density='compact'] .touch-feedback span {
+  font-size: 0.9em;
+}
+
+/* Spacious: more breathing room */
+html[data-density='spacious'] {
+  --density-gap-scale: 1.5;
+  --density-padding-scale: 1.35;
+  --density-font-scale: 1.05;
+}
+html[data-density='spacious'] .touch-feedback {
+  padding: 1.5rem !important;
+}
+html[data-density='spacious'] .touch-feedback h2,
+html[data-density='spacious'] .touch-feedback h3 {
+  font-size: 1.1em;
+}
+
+/* ── Card Scale (applied via inline zoom in DashboardGrid) ── */
+
+
 /* Custom scrollbar for modal content */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;

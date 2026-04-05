@@ -130,6 +130,33 @@ export function usePageManagement({
       defaultSlug: 'sonos',
     });
 
+  const createLightsPage = () =>
+    createTypedPage({
+      labelKey: 'addCard.type.light',
+      fallbackLabel: 'Lights',
+      defaultIcon: 'Lightbulb',
+      defaultType: 'lights',
+      defaultSlug: 'lights',
+    });
+
+  const createBatteryPage = () =>
+    createTypedPage({
+      labelKey: 'addCard.type.battery',
+      fallbackLabel: 'Battery',
+      defaultIcon: 'Battery',
+      defaultType: 'battery',
+      defaultSlug: 'battery',
+    });
+
+  const createRoomExplorerPage = () =>
+    createTypedPage({
+      labelKey: 'addCard.type.roomExplorer',
+      fallbackLabel: 'Rooms',
+      defaultIcon: 'Home',
+      defaultType: 'room_explorer',
+      defaultSlug: 'room_explorer',
+    });
+
   // ── Delete a page ──────────────────────────────────────────────────────
   const deletePage = (pageId) => {
     if (!pageId || pageId === 'home') return;
@@ -172,6 +199,9 @@ export function usePageManagement({
     createPage,
     createMediaPage,
     createSonosPage,
+    createLightsPage,
+    createBatteryPage,
+    createRoomExplorerPage,
     deletePage,
     removeCard,
   };

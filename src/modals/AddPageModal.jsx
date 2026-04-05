@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, LayoutGrid, Music, Speaker, Lightbulb, Battery, Home } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+
+const SELECTED_CONTAINER = 'bg-[var(--accent-bg)] border-[var(--accent-color)]';
+const SELECTED_TEXT = 'text-[var(--accent-color)]';
+
+const PageTypeButton = ({ type, icon: Icon, label, isActive, onSelect }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(type)}
+    className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-bold tracking-widest whitespace-nowrap uppercase transition-colors duration-150 ease-out focus-visible:outline-none ${isActive ? `${SELECTED_CONTAINER} ${SELECTED_TEXT}` : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+  >
+    <Icon className="h-4 w-4" /> {label}
+  </button>
+);
 
 export default function AddPageModal({
   isOpen,
@@ -14,6 +27,9 @@ export default function AddPageModal({
   onCreate,
   onCreateMedia,
   onCreateSonos,
+  onCreateLights,
+  onCreateBattery,
+  onCreateRoomExplorer,
 }) {
   const [activeTab, setActiveTab] = useState('standard');
   const modalTitleId = 'add-page-modal-title';
@@ -53,28 +69,54 @@ export default function AddPageModal({
           {t('modal.addPage.title')}
         </h3>
 
-        <div className="mb-6 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab('standard')}
-            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'standard' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {t('page.create')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('media')}
-            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'media' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {t('addCard.type.media')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('sonos')}
-            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'sonos' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {t('addCard.type.sonos')}
-          </button>
+        <div className="mb-6">
+          <p className="mb-2 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+            {t('addCard.cardType') || 'Type'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <PageTypeButton
+              type="standard"
+              icon={LayoutGrid}
+              label={t('page.create')}
+              isActive={activeTab === 'standard'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="media"
+              icon={Music}
+              label={t('addCard.type.media')}
+              isActive={activeTab === 'media'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="sonos"
+              icon={Speaker}
+              label={t('addCard.type.sonos')}
+              isActive={activeTab === 'sonos'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="lights"
+              icon={Lightbulb}
+              label={t('addCard.type.light')}
+              isActive={activeTab === 'lights'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="battery"
+              icon={Battery}
+              label={t('addCard.type.battery')}
+              isActive={activeTab === 'battery'}
+              onSelect={setActiveTab}
+            />
+            <PageTypeButton
+              type="roomExplorer"
+              icon={Home}
+              label={t('addCard.type.roomExplorer')}
+              isActive={activeTab === 'roomExplorer'}
+              onSelect={setActiveTab}
+            />
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -129,7 +171,7 @@ export default function AddPageModal({
                 <Plus className="h-5 w-5" /> {t('page.create')}
               </button>
             </>
-          ) : (
+          ) : activeTab === 'sonos' ? (
             <>
               <div className="popup-surface rounded-2xl p-4 text-sm text-[var(--text-secondary)]">
                 <p className="mb-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
@@ -144,7 +186,52 @@ export default function AddPageModal({
                 <Plus className="h-5 w-5" /> {t('sonos.createPage')}
               </button>
             </>
-          )}
+          ) : activeTab === 'lights' ? (
+            <>
+              <div className="popup-surface rounded-2xl p-4 text-sm text-[var(--text-secondary)]">
+                <p className="mb-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                  {t('addCard.type.light')}
+                </p>
+                <p className="leading-relaxed">{t('lights.createDescription') || 'Control all your lights from one place with brightness and color controls.'}</p>
+              </div>
+              <button
+                onClick={onCreateLights}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent-color)] bg-[var(--accent-bg)] py-4 font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:opacity-90"
+              >
+                <Plus className="h-5 w-5" /> {t('page.create')}
+              </button>
+            </>
+          ) : activeTab === 'battery' ? (
+            <>
+              <div className="popup-surface rounded-2xl p-4 text-sm text-[var(--text-secondary)]">
+                <p className="mb-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                  {t('addCard.type.battery')}
+                </p>
+                <p className="leading-relaxed">{t('battery.createDescription') || 'Monitor all battery-powered device levels, get low battery warnings and track offline devices.'}</p>
+              </div>
+              <button
+                onClick={onCreateBattery}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent-color)] bg-[var(--accent-bg)] py-4 font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:opacity-90"
+              >
+                <Plus className="h-5 w-5" /> {t('page.create')}
+              </button>
+            </>
+          ) : activeTab === 'roomExplorer' ? (
+            <>
+              <div className="popup-surface rounded-2xl p-4 text-sm text-[var(--text-secondary)]">
+                <p className="mb-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                  {t('addCard.type.roomExplorer')}
+                </p>
+                <p className="leading-relaxed">{t('roomExplorer.createDescription') || 'Browse all rooms and control every entity from one place.'}</p>
+              </div>
+              <button
+                onClick={onCreateRoomExplorer}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent-color)] bg-[var(--accent-bg)] py-4 font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:opacity-90"
+              >
+                <Plus className="h-5 w-5" /> {t('page.create')}
+              </button>
+            </>
+          ) : null}
         </div>
         </>
       )}

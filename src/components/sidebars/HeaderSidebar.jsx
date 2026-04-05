@@ -8,6 +8,7 @@ import {
   Type,
   AlignLeft,
   LayoutGrid,
+  Battery,
 } from '../../icons';
 import M3Slider from '../ui/M3Slider';
 import SidebarContainer from './SidebarContainer';
@@ -161,6 +162,7 @@ export default function HeaderSidebar({
   t,
 }) {
   const [sections, setSections] = useState({
+    layout: false,
     typography: true,
     style: false,
     clock: false,
@@ -219,6 +221,62 @@ export default function HeaderSidebar({
             </button>
           </div>
         </div>
+
+        {/* ── Layout Section ── */}
+        <Section
+          id="layout"
+          icon={Battery}
+          title={t('header.headerLayout') || 'Layout'}
+          isOpen={sections.layout}
+          toggle={toggleSection}
+        >
+          {/* Style toggle: Classic / Battery */}
+          <div className="space-y-2">
+            <span
+              className="text-[11px] font-bold tracking-wider uppercase"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {t('header.headerStyle') || 'Style'}
+            </span>
+            <SegmentedControl
+              options={[
+                { value: 'classic', label: t('header.styleClassic') || 'Classic' },
+                { value: 'battery', label: t('header.styleBattery') || 'Battery' },
+              ]}
+              value={setting('headerStyle', 'classic')}
+              onChange={(v) => update('headerStyle', v)}
+            />
+          </div>
+
+          {/* Battery-only options */}
+          {setting('headerStyle', 'classic') === 'battery' && (
+            <>
+              <div className="space-y-2">
+                <span
+                  className="text-[11px] font-bold tracking-wider uppercase"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {t('header.batteryVariant') || 'Variant'}
+                </span>
+                <SegmentedControl
+                  options={[
+                    { value: 'glass', label: t('header.variantGlass') || 'Glass' },
+                    { value: 'solid', label: t('header.variantSolid') || 'Solid' },
+                    { value: 'outline', label: t('header.variantOutline') || 'Outline' },
+                  ]}
+                  value={setting('batteryVariant', 'glass')}
+                  onChange={(v) => update('batteryVariant', v)}
+                />
+              </div>
+
+              <Toggle
+                label={t('header.showBatteryNub') || 'Show terminal nub'}
+                value={setting('showBatteryNub', true)}
+                onChange={(v) => update('showBatteryNub', v)}
+              />
+            </>
+          )}
+        </Section>
 
         {/* ── Typography Section ── */}
         <Section

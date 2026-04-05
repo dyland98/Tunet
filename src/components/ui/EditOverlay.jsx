@@ -55,9 +55,9 @@ function getNextSize(editId, currentSize) {
 }
 
 function EditOverlay({
-  _cardId,
+  cardId: _cardId,
   editId,
-  _settingsKey,
+  settingsKey: _settingsKey,
   isHidden,
   currentSize,
   settings,
@@ -155,9 +155,9 @@ function EditOverlay({
             className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full border border-white/20 text-white shadow-lg transition-colors hover:bg-[var(--accent-color)]`}
             style={{ backgroundColor: isSmall ? 'var(--accent-color)' : 'rgba(0, 0, 0, 0.6)' }}
             title={
-              isTriple ? 'Bytt storleik' : isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize')
+              isTriple ? t('tooltip.cycleSize') : isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize')
             }
-            aria-label={isTriple ? 'Bytt storleik' : isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize')}
+            aria-label={isTriple ? t('tooltip.cycleSize') : isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize')}
           >
             {isSmall ? <Maximize2 className={iconClass} /> : <Minimize2 className={iconClass} />}
           </button>

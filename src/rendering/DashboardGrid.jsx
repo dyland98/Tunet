@@ -1,10 +1,10 @@
 import { LayoutGrid, Plus, UserCircle2 } from '../icons';
-import { MediaPage, SonosPage } from '../components';
+import { MediaPage, SonosPage, LightsPage, BatteryPage, RoomExplorerPage } from '../components';
 import CardErrorBoundary from '../components/ui/CardErrorBoundary';
 import { formatDuration } from '../utils';
 
 export default function DashboardGrid({ page, media, grid, cards, actions, t }) {
-  const { activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage } = page;
+  const { activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage, isLightsPage, isBatteryPage, isRoomExplorerPage } = page;
   const {
     entities,
     conn,
@@ -16,7 +16,7 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
     callService,
     savePageSetting,
   } = media;
-  const { gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards } = grid;
+  const { gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards, cardScale } = grid;
   const { cardSettings, getCardSettingsKey, hiddenCards, isCardHiddenByLogic, renderCard } = cards;
   const { setShowAddCardModal, setConfigTab, setShowConfigModal } = actions;
 
@@ -67,9 +67,59 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
     );
   }
 
+  if (isLightsPage(activePage)) {
+    return (
+      <div key={activePage} className="page-transition">
+        <LightsPage
+          entities={entities}
+          callService={callService}
+          conn={conn}
+          pageSettings={pageSettings}
+          pageId={activePage}
+          savePageSetting={savePageSetting}
+          t={t}
+        />
+      </div>
+    );
+  }
+
+  if (isBatteryPage(activePage)) {
+    return (
+      <div key={activePage} className="page-transition">
+        <BatteryPage
+          entities={entities}
+          callService={callService}
+          conn={conn}
+          pageSettings={pageSettings}
+          pageId={activePage}
+          savePageSetting={savePageSetting}
+          t={t}
+        />
+      </div>
+    );
+  }
+
+  if (isRoomExplorerPage(activePage)) {
+    return (
+      <div key={activePage} className="page-transition">
+        <RoomExplorerPage
+          entities={entities}
+          callService={callService}
+          conn={conn}
+          pageSettings={pageSettings}
+          pageId={activePage}
+          savePageSetting={savePageSetting}
+          t={t}
+        />
+      </div>
+    );
+  }
+
   const hasVisiblePlacement =
     (pagesConfig[activePage] || []).filter((id) => gridLayout[id]).length > 0;
   const cardIndexMap = new Map((pagesConfig[activePage] || []).map((id, index) => [id, index]));
+  const scaleFactor = (cardScale || 100) / 100;
+  const needsScale = scaleFactor !== 1;
   if (!hasVisiblePlacement) {
     const allPages = pagesConfig.pages || [];
     const totalCards =
@@ -122,7 +172,9 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
       key={activePage}
       className="page-transition grid items-start font-sans"
       style={{
-        gap: isMobile ? '8px' : `${gridGapV}px ${gridGapH}px`,
+        gap: isMobile
+          ? '8px'
+          : `calc(${gridGapV}px * var(--density-gap-scale, 1)) calc(${gridGapH}px * var(--density-gap-scale, 1))`,
         gridAutoRows: 'auto',
         gridTemplateColumns: `repeat(${gridColCount}, minmax(0, 1fr))`,
       }}
@@ -162,14 +214,15 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
           if (!cardContent) return null;
 
           const gapPx = isMobile ? 8 : gridGapV;
-          const rowPx = isMobile ? 82 : 100;
+          const baseRowPx = isMobile ? 82 : 100;
+          const rowPx = baseRowPx * scaleFactor;
           let cardHeight;
           if (
             id.startsWith('spacer_card_') &&
             Number.isFinite(Number(settings.heightPx)) &&
             Number(settings.heightPx) > 0
           ) {
-            cardHeight = Math.max(40, Math.min(420, Number(settings.heightPx)));
+            cardHeight = Math.max(40, Math.min(420, Number(settings.heightPx) * scaleFactor));
           } else if (isLargeCard && sizeSetting !== 'small' && sizeSetting !== 'medium') {
             cardHeight = 4 * rowPx + 3 * gapPx;
           } else {
@@ -193,7 +246,12 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
                   {heading}
                 </div>
               )}
-              <div className="h-full">
+              <div
+                className="h-full overflow-hidden"
+                style={needsScale ? {
+                  fontSize: `${scaleFactor}em`,
+                } : undefined}
+              >
                 <CardErrorBoundary cardId={id} t={t}>
                   {cardContent}
                 </CardErrorBoundary>

@@ -12,7 +12,7 @@ import {
   Unlock,
   X,
 } from '../icons';
-import MdiIcon from '@mdi/react';
+import { Icon as MdiIcon } from '@mdi/react';
 import { mdiShieldHome, mdiShieldLock, mdiShieldOff } from '@mdi/js';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
@@ -157,6 +157,7 @@ export default function AlarmModal({
   entity,
   callService,
   customName,
+  customIcon: _customIcon,
   t,
 }) {
   const [pin, setPin] = useState('');

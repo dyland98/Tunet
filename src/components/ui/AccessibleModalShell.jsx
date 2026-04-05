@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { normalizeModalOverlayStyle } from './modalStyles';
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -8,6 +9,16 @@ const PRIORITY_FOCUS_SELECTOR =
 /**
  * Shared accessible modal shell with dialog semantics and focus management.
  * Keep visual styling in each modal by passing overlay/panel classes and styles.
+ * @param {Object} props
+ * @param {boolean} props.open
+ * @param {(e?: any) => void} props.onClose
+ * @param {string} [props.titleId]
+ * @param {string} [props.describedBy]
+ * @param {string} [props.overlayClassName]
+ * @param {Object} [props.overlayStyle]
+ * @param {string} [props.panelClassName]
+ * @param {Object} [props.panelStyle]
+ * @param {Function} props.children
  */
 export default function AccessibleModalShell({
   open,
@@ -96,8 +107,10 @@ export default function AccessibleModalShell({
 
   if (!open) return null;
 
+  const resolvedOverlayStyle = normalizeModalOverlayStyle(overlayStyle);
+
   return (
-    <div className={overlayClassName} style={overlayStyle} onClick={onClose}>
+    <div className={overlayClassName} style={resolvedOverlayStyle} onClick={onClose}>
       <div
         ref={panelRef}
         role="dialog"

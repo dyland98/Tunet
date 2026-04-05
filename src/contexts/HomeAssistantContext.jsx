@@ -15,12 +15,44 @@ import {
 } from 'home-assistant-js-websocket';
 import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
 import { HOME_ASSISTANT_API_UNAUTHORIZED_EVENT, setOAuthAuthProvider } from '../services/apiAuth';
-import { isEntityDataStale } from '../utils';
+import { getDeviceRegistry, getEntityRegistry } from '../services/haClient';
+import { buildRegistryLookupMap, enrichEntitiesWithRegistryMetadata, isEntityDataStale } from '../utils';
 
 /** @typedef {import('../types/dashboard').EntityMap} EntityMap */
 /** @typedef {import('../types/dashboard').HomeAssistantContextValue} HomeAssistantContextValue */
 /** @typedef {import('../types/dashboard').HomeAssistantProviderProps} HomeAssistantProviderProps */
 /** @typedef {Omit<HomeAssistantContextValue, 'entities'>} HomeAssistantMetaValue */
+
+const ENTITY_CACHE_KEY = 'tunet_entity_snapshot';
+const ENTITY_CACHE_MAX_AGE_MS = 5 * 60_000; // 5 minutes — stale snapshots are discarded
+
+/** Read cached entity snapshot from sessionStorage (returns {} if absent/expired). */
+function loadCachedEntities() {
+  try {
+    const raw = globalThis.sessionStorage.getItem(ENTITY_CACHE_KEY);
+    if (!raw) return {};
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > ENTITY_CACHE_MAX_AGE_MS) {
+      globalThis.sessionStorage.removeItem(ENTITY_CACHE_KEY);
+      return {};
+    }
+    return data && typeof data === 'object' ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Persist entity snapshot to sessionStorage (best-effort, never throws). */
+function saveCachedEntities(entities) {
+  try {
+    globalThis.sessionStorage.setItem(
+      ENTITY_CACHE_KEY,
+      JSON.stringify({ ts: Date.now(), data: entities })
+    );
+  } catch {
+    // Storage full / private mode — ignore silently
+  }
+}
 
 /** @type {import('react').Context<EntityMap | null>} */
 const HomeAssistantEntitiesContext = createContext(null);
@@ -59,9 +91,10 @@ export const useHomeAssistant = () => {
  */
 /** @returns {[EntityMap, (updatedEntities: EntityMap) => void]} */
 function useThrottledEntities() {
-  const [entities, setEntities] = useState({});
+  const [entities, setEntities] = useState(loadCachedEntities);
   const pendingRef = useRef(null);
   const rafRef = useRef(null);
+  const saveTimerRef = useRef(null);
 
   const setEntitiesThrottled = useCallback((updatedEntities) => {
     pendingRef.current = updatedEntities;
@@ -70,6 +103,13 @@ function useThrottledEntities() {
         rafRef.current = null;
         if (pendingRef.current) {
           setEntities(pendingRef.current);
+          // Debounce sessionStorage writes to once per 10 s
+          if (saveTimerRef.current == null) {
+            saveTimerRef.current = setTimeout(() => {
+              saveTimerRef.current = null;
+              if (pendingRef.current) saveCachedEntities(pendingRef.current);
+            }, 10_000);
+          }
         }
       });
     }
@@ -79,6 +119,7 @@ function useThrottledEntities() {
   useEffect(() => {
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      if (saveTimerRef.current != null) clearTimeout(saveTimerRef.current);
     };
   }, []);
 
@@ -104,6 +145,27 @@ export const HomeAssistantProvider = ({ children, config }) => {
   const connectionRef = useRef(null);
   const unsubscribeEntitiesRef = useRef(null);
   const connectAttemptRef = useRef(0);
+  const rawEntitiesRef = useRef(entities);
+  const entityRegistryByIdRef = useRef(new Map());
+  const deviceRegistryByIdRef = useRef(new Map());
+
+  const applyRegistryMetadata = useCallback(
+    (nextEntities) =>
+      enrichEntitiesWithRegistryMetadata(
+        nextEntities,
+        entityRegistryByIdRef.current,
+        deviceRegistryByIdRef.current
+      ),
+    []
+  );
+
+  const pushEntitySnapshot = useCallback(
+    (nextEntities) => {
+      rawEntitiesRef.current = nextEntities;
+      setEntities(applyRegistryMetadata(nextEntities));
+    },
+    [applyRegistryMetadata, setEntities]
+  );
 
   useEffect(() => {
     setOAuthAuthProvider(authRef);
@@ -131,7 +193,13 @@ export const HomeAssistantProvider = ({ children, config }) => {
       connectionRef.current = null;
     }
     setConn(null);
+    entityRegistryByIdRef.current = new Map();
+    deviceRegistryByIdRef.current = new Map();
   }, []);
+
+  useEffect(() => {
+    rawEntitiesRef.current = entities;
+  }, [entities]);
 
   // Connect to Home Assistant
   useEffect(() => {
@@ -246,6 +314,43 @@ export const HomeAssistantProvider = ({ children, config }) => {
       }
     }
 
+    async function fetchRegistryMetadata(connInstance) {
+      try {
+        const [deviceRegistry, entityRegistry] = await Promise.all([
+          getDeviceRegistry(connInstance),
+          getEntityRegistry(connInstance),
+        ]);
+
+        if (!isCurrentAttempt()) return;
+
+        entityRegistryByIdRef.current = buildRegistryLookupMap(entityRegistry, 'entity_id');
+        deviceRegistryByIdRef.current = buildRegistryLookupMap(deviceRegistry, 'id');
+
+        if (rawEntitiesRef.current && Object.keys(rawEntitiesRef.current).length > 0) {
+          setEntities(applyRegistryMetadata(rawEntitiesRef.current));
+        }
+      } catch (err) {
+        const resultError = err?.error || err;
+        const errorCode = resultError?.code;
+        const errorMessage = String(resultError?.message || '').toLowerCase();
+        const isExpectedRegistryError =
+          errorCode === 'unknown_command' ||
+          errorCode === 'not_found' ||
+          errorCode === 'unauthorized' ||
+          errorCode === 'forbidden' ||
+          errorMessage.includes('unknown command') ||
+          errorMessage.includes('not found') ||
+          errorMessage.includes('unauthorized') ||
+          errorMessage.includes('forbidden') ||
+          errorMessage.includes('entity_registry') ||
+          errorMessage.includes('device_registry');
+
+        if (!isExpectedRegistryError) {
+          console.warn('[HA] Failed to load registry metadata:', err);
+        }
+      }
+    }
+
     const persistConfig = (urlUsed) => {
       try {
         localStorage.setItem('ha_url', urlUsed.replace(/\/$/, ''));
@@ -281,9 +386,10 @@ export const HomeAssistantProvider = ({ children, config }) => {
       setActiveUrl(url);
       persistConfig(url);
       fetchCurrentUser(connInstance);
+      fetchRegistryMetadata(connInstance);
       const unsub = subscribeEntities(connInstance, (updatedEntities) => {
         if (isCurrentAttempt()) {
-          setEntities(updatedEntities);
+          pushEntitySnapshot(updatedEntities);
           setEntitiesLoaded(true);
           setLastEntityUpdateAt(Date.now());
           setEntityDataStale(false);
@@ -324,9 +430,10 @@ export const HomeAssistantProvider = ({ children, config }) => {
       persistConfig(url);
       fetchHaConfig(connInstance);
       fetchCurrentUser(connInstance);
+      fetchRegistryMetadata(connInstance);
       const unsub = subscribeEntities(connInstance, (updatedEntities) => {
         if (isCurrentAttempt()) {
-          setEntities(updatedEntities);
+          pushEntitySnapshot(updatedEntities);
           setEntitiesLoaded(true);
           setLastEntityUpdateAt(Date.now());
           setEntityDataStale(false);
@@ -401,6 +508,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
     config.isIngress,
     cleanupConnection,
     setEntities,
+    applyRegistryMetadata,
+    pushEntitySnapshot,
   ]);
 
   // Handle connection events
@@ -494,6 +603,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       haConfig,
       entityDataStale,
       lastEntityUpdateAt,
+      disconnectedSince,
       authRef,
       haUser,
     }),
@@ -508,6 +618,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       haConfig,
       entityDataStale,
       lastEntityUpdateAt,
+      disconnectedSince,
       haUser,
     ]
   );
