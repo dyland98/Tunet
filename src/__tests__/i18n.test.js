@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { en, nb, nn, sv, de, zh } from '../i18n';
+import { en, nb, nn, sv, de, zh, fr } from '../i18n';
 
 const getPlaceholders = (value) => {
   const matches = String(value).match(/\{[^}]+\}/g) || [];
@@ -32,19 +32,21 @@ const expectParityWithEnglish = (targetTranslations, languageCode) => {
 };
 
 describe('i18n', () => {
-  it('exports supported translation objects including Chinese', () => {
+  it('exports supported translation objects including French and Chinese', () => {
     expect(en).toBeDefined();
     expect(nb).toBeDefined();
     expect(nn).toBeDefined();
     expect(sv).toBeDefined();
     expect(de).toBeDefined();
     expect(zh).toBeDefined();
+    expect(fr).toBeDefined();
     expect(typeof en).toBe('object');
     expect(typeof nb).toBe('object');
     expect(typeof nn).toBe('object');
     expect(typeof sv).toBe('object');
     expect(typeof de).toBe('object');
     expect(typeof zh).toBe('object');
+    expect(typeof fr).toBe('object');
   });
 
   it('fan keys exist across all supported locales including German', () => {
@@ -66,7 +68,7 @@ describe('i18n', () => {
       'fan.turnOn',
     ];
 
-    const locales = { en, nb, nn, sv, de };
+    const locales = { en, nb, nn, sv, de, fr };
     Object.entries(locales).forEach(([code, locale]) => {
       fanKeys.forEach((key) => {
         expect(locale[key], `${code}.json is missing fan key "${key}"`).toBeDefined();
@@ -79,6 +81,7 @@ describe('i18n', () => {
     expectParityWithEnglish(nn, 'nn');
     expectParityWithEnglish(sv, 'sv');
     expectParityWithEnglish(de, 'de');
+    expectParityWithEnglish(fr, 'fr');
   });
 
   it('no empty translation values', () => {
@@ -96,6 +99,9 @@ describe('i18n', () => {
     }
     for (const [key, value] of Object.entries(de)) {
       expect(value, `de.json key "${key}" is empty`).not.toBe('');
+    }
+    for (const [key, value] of Object.entries(fr)) {
+      expect(value, `fr.json key "${key}" is empty`).not.toBe('');
     }
   });
 });

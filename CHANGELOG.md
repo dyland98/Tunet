@@ -5,12 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.16.1] — 2026-04-20
+
+### Added
+- No user-facing additions in this patch release.
+
+### Changed
+- Added PR reference for French locale support in release notes (#142).
+- Expanded i18n parity coverage to include French keys and placeholders.
+
+### Fixed
+- Fixed a runtime locale mapping gap where selecting `fr` still fell back to English.
+- Added missing French language options in Settings and Theme language dropdowns.
+
+
 ## [1.16.0] — 2026-04-20
 
 ### Added
 - Added a new `lawn_mower` card type with small and large layouts, plus start/pause/dock controls.
 - Added a dedicated mower popup with status, battery, zone, and quick actions.
-- Added French language support (`fr`) to the dashboard locale bundle.
+- Added French language support (`fr`) to the dashboard locale bundle (#142).
 
 ### Changed
 - Expanded card/add-flow and rendering registry support for mower entities across card creation, popups, and orchestration wiring.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.16.1
+
+### Added
+- Includes dashboard release `1.16.1`.
+
+### Changed
+- Improves localization verification by extending i18n parity checks to cover French.
+
+### Fixed
+- Restores full French UI activation by wiring `fr` into runtime translation mapping and language selectors.
+
 ## 1.16.0
 
 ### Added
