@@ -273,7 +273,7 @@ export default function LightModal({
 
         {/* RIGHT PANEL: Controls (2 cols) */}
         {showRightPanel && (
-          <div className="flex h-full flex-col overflow-hidden lg:col-span-2">
+          <div className="flex max-h-[90vh] flex-col overflow-hidden lg:col-span-2">
             <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-4 md:space-y-8 md:p-8 lg:pt-16">
               {/* Dynamic Control Area - Simplified */}
               {isDimmable && (
