@@ -22,6 +22,7 @@ export function useEditModalProps({
     const editEntity = editId ? entities[editId] : null;
 
     const isEditLight = !!editId && (editId.startsWith('light_') || editId.startsWith('light.'));
+    const isEditSwitch = !!editId && (editId.startsWith('switch_') || editId.startsWith('switch.'));
     const isEditMedia =
       !!editId &&
       (editId.startsWith('media_player.') ||
@@ -95,6 +96,7 @@ export function useEditModalProps({
       canEditIcon,
       canEditStatus,
       isEditLight,
+      isEditSwitch,
       isEditMedia,
       isEditCalendar,
       isEditTodo,

@@ -836,6 +836,7 @@ export default function EditCardModal({
   canEditIcon,
   canEditStatus,
   isEditLight,
+  isEditSwitch,
   isEditSensor,
   isEditMedia,
   isEditCalendar,
@@ -2901,7 +2902,7 @@ export default function EditCardModal({
               );
             })()}
 
-          {isEditLight && editSettingsKey && (
+          {(isEditLight || isEditSwitch) && editSettingsKey && (
             <div className="space-y-3">
               <SearchableSelect
                 label={t('room.tempSensor') || 'Temperature sensor'}
