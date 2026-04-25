@@ -44,6 +44,8 @@ export const handleAddSelected = (ctx) => {
     switch (addCardType) {
       case 'light':
         return selectedEntities.filter((id) => id.startsWith('light.'));
+      case 'switch':
+        return selectedEntities.filter((id) => id.startsWith('switch.'));
       case 'vacuum':
         return selectedEntities.filter((id) => id.startsWith('vacuum.'));
       case 'fan':

@@ -21,6 +21,7 @@ import {
   Shield,
   Sparkles,
   Thermometer,
+  ToggleRight,
   X,
   Zap,
 } from '../icons';
@@ -362,6 +363,7 @@ function AddCardContent({
           !excludedOnPage.has(id)
         );
       }
+      if (addCardType === 'switch') return id.startsWith('switch.') && !excludedOnPage.has(id);
       if (addCardType === 'toggle') return isToggleEntity(id) && !excludedOnPage.has(id);
       if (addCardType === 'entity') {
         return !id.startsWith('person.') && !id.startsWith('update.') && !excludedOnPage.has(id);
@@ -881,6 +883,7 @@ function AddCardContent({
   const usesEntityMultiSelect = [
     'sensor',
     'light',
+    'switch',
     'vacuum',
     'mower',
     'fan',
@@ -958,6 +961,13 @@ function AddCardContent({
                   icon={Lightbulb}
                   label={t('addCard.type.light')}
                   isActive={addCardType === 'light'}
+                  onSelect={setAddCardType}
+                />
+                <TypeButton
+                  type="switch"
+                  icon={ToggleRight}
+                  label={t('addCard.type.switch') || 'Switch'}
+                  isActive={addCardType === 'switch'}
                   onSelect={setAddCardType}
                 />
                 <TypeButton

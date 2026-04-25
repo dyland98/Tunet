@@ -43,6 +43,7 @@ export function useCardRendering({
   entityModalActions,
   mediaModalActions,
   setShowLightModal: legacySetShowLightModal,
+  setShowSwitchModal: legacySetShowSwitchModal,
   setShowSensorInfoModal: legacySetShowSensorInfoModal,
   setActiveClimateEntityModal: legacySetActiveClimateEntityModal,
   setShowCostModal: legacySetShowCostModal,
@@ -75,6 +76,7 @@ export function useCardRendering({
 }) {
   const resolvedEntityModalActions = entityModalActions || {
     setShowLightModal: legacySetShowLightModal,
+    setShowSwitchModal: legacySetShowSwitchModal,
     setShowSensorInfoModal: legacySetShowSensorInfoModal,
     setActiveClimateEntityModal: legacySetActiveClimateEntityModal,
     setShowCostModal: legacySetShowCostModal,
@@ -101,6 +103,7 @@ export function useCardRendering({
   };
   const {
     setShowLightModal,
+    setShowSwitchModal,
     setShowSensorInfoModal,
     setActiveClimateEntityModal,
     setShowCostModal,
@@ -344,6 +347,7 @@ export function useCardRendering({
         forecastsById,
         isCardHiddenByLogic,
         setShowLightModal,
+        setShowSwitchModal,
         setShowSensorInfoModal,
         setActiveClimateEntityModal,
         setShowCostModal,
@@ -432,6 +436,7 @@ export function useCardRendering({
       tempHistoryById,
       forecastsById,
       setShowLightModal,
+      setShowSwitchModal,
       setShowSensorInfoModal,
       setActiveClimateEntityModal,
       setShowCostModal,

@@ -15,6 +15,7 @@ const CameraModal = lazy(() => import('../../modals/CameraModal'));
 const WeatherModal = lazy(() => import('../../modals/WeatherModal'));
 const LeafModal = lazy(() => import('../../modals/LeafModal'));
 const LightModal = lazy(() => import('../../modals/LightModal'));
+const SwitchModal = lazy(() => import('../../modals/SwitchModal'));
 const NordpoolModal = lazy(() => import('../../modals/NordpoolModal'));
 const PersonModal = lazy(() => import('../../modals/PersonModal'));
 const SensorModal = lazy(() => import('../../modals/SensorModal'));
@@ -36,6 +37,8 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
     setActiveClimateEntityModal,
     showLightModal,
     setShowLightModal,
+    showSwitchModal,
+    setShowSwitchModal,
     activeCarModal,
     setActiveCarModal,
     showPersonModal,
@@ -188,6 +191,21 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             getA={getA}
             optimisticLightBrightness={optimisticLightBrightness}
             setOptimisticLightBrightness={setOptimisticLightBrightness}
+            customIcons={customIcons}
+            t={t}
+          />
+        </ModalSuspense>
+      )}
+
+      {showSwitchModal && (
+        <ModalSuspense>
+          <SwitchModal
+            show={!!showSwitchModal}
+            onClose={() => setShowSwitchModal(null)}
+            switchId={showSwitchModal}
+            entities={entities}
+            callService={callService}
+            getA={getA}
             customIcons={customIcons}
             t={t}
           />

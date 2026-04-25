@@ -178,6 +178,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     setShowEnergyModal: modals.setShowEnergyModal,
     setActiveClimateEntityModal: modals.setActiveClimateEntityModal,
     setShowLightModal: modals.setShowLightModal,
+    setShowSwitchModal: modals.setShowSwitchModal,
     setActiveCarModal: modals.setActiveCarModal,
     setShowPersonModal: modals.setShowPersonModal,
     setShowAndroidTVModal: modals.setShowAndroidTVModal,

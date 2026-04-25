@@ -39,6 +39,7 @@ export function useDashboardStateCoordinator(deps) {
     setShowTodoModal: deps.setShowTodoModal,
     setShowWeatherModal: deps.setShowWeatherModal,
     setShowLightModal: deps.setShowLightModal,
+    setShowSwitchModal: deps.setShowSwitchModal,
     setShowSensorInfoModal: deps.setShowSensorInfoModal,
     setActiveClimateEntityModal: deps.setActiveClimateEntityModal,
     setShowCostModal: deps.setShowCostModal,
@@ -70,6 +71,7 @@ export function useDashboardStateCoordinator(deps) {
     setShowTodoModal,
     setShowWeatherModal,
     setShowLightModal,
+    setShowSwitchModal,
     setShowSensorInfoModal,
     setActiveClimateEntityModal,
     setShowCostModal,
@@ -99,6 +101,7 @@ export function useDashboardStateCoordinator(deps) {
     () => ({
       closeAllModals,
       setShowLightModal,
+      setShowSwitchModal,
       setShowSensorInfoModal,
       setActiveClimateEntityModal,
       setShowCostModal,
@@ -127,6 +130,7 @@ export function useDashboardStateCoordinator(deps) {
     [
       closeAllModals,
       setShowLightModal,
+      setShowSwitchModal,
       setShowSensorInfoModal,
       setActiveClimateEntityModal,
       setShowCostModal,

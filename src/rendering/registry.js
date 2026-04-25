@@ -4,6 +4,7 @@ import { getSettings } from './helpers';
 import {
   renderSensorCard,
   renderLightCard,
+  renderSwitchCard,
   renderAutomationCard,
   renderCarCard,
   renderEnergyCard,
@@ -33,6 +34,8 @@ import {
 export const CARD_REGISTRY = [
   { prefix: 'light_', renderer: renderLightCard },
   { prefix: 'light.', renderer: renderLightCard },
+  { prefix: 'switch_', renderer: renderSwitchCard },
+  { prefix: 'switch.', renderer: renderSwitchCard },
   { prefix: 'vacuum.', renderer: renderVacuumCard },
   { prefix: 'lawn_mower.', renderer: renderMowerCard },
   { prefix: 'fan.', renderer: renderFanCard },

@@ -1,5 +1,6 @@
 export { renderSensorCard } from './sensorRenderer';
 export { renderLightCard } from './lightRenderer';
+export { renderSwitchCard } from './switchRenderer';
 export { renderAutomationCard } from './automationRenderer';
 export { renderCarCard } from './carRenderer';
 export { renderEnergyCard } from './energyRenderer';

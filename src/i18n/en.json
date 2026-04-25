@@ -84,6 +84,7 @@
   "addCard.type.entity": "Person",
   "addCard.type.fan": "Fan",
   "addCard.type.light": "Light",
+  "addCard.type.switch": "Switch",
   "addCard.type.battery": "Battery",
   "addCard.type.roomExplorer": "Rooms",
   "addCard.type.media": "Media",
