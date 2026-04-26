@@ -4,13 +4,23 @@
 
 ### Added
 - Includes dashboard release `1.16.2`.
+- Small release preview for the refreshed Status Pills feature.
+- Adds new animation presets for Status Pills.
+
+<p>
+  <img src="https://raw.githubusercontent.com/oyvhov/Tunet/v1.16.2/public/release-assets/image.png" alt="Status Pills release preview" width="430" />
+</p>
 
 ### Changed
-- Improves Status Pills with animation presets, broader color styling, and clearer text display controls.
+- Refines Status Pills with animation presets, expanded color choices, clearer icon-only naming, and more predictable manual heading behavior.
+- Reduces unnecessary profile/settings bootstrap work when profile prefetch is intentionally disabled.
 
 ### Fixed
-- Stabilizes Status Pills persistence for edited text, conditions, and required-entity validation.
-- Improves Home Assistant reachability fallback handling for Docker-hosted setups.
+- Keeps Status Pills heading and subtitle visibility settings stable across reopen and reload, and commits pending condition values when saving.
+- Prevents newly added visible sensor and alarm pills from disappearing after save by requiring an entity selection before the pill can be saved.
+- Improves Home Assistant backend auth logging and Docker fallback URL handling for easier connection troubleshooting.
+
+**Full Changelog**: https://github.com/oyvhov/Tunet/compare/v1.16.1...v1.16.2
 
 ## 1.16.1
 
