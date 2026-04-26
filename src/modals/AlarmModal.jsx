@@ -374,13 +374,10 @@ export default function AlarmModal({
             </p>
             <input
               type="password"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              inputMode="none"
+              readOnly
               value={pin}
-              onChange={(event) => {
-                setPin(event.target.value.replace(/\D/g, '').slice(0, 12));
-                if (error) setError('');
-              }}
+              onChange={() => {}}
               placeholder={translate('alarm.pin.placeholder')}
               className="w-full rounded-2xl bg-[var(--glass-bg)] px-4 py-3 text-center text-lg tracking-[0.35em] text-[var(--text-primary)] outline-none"
             />

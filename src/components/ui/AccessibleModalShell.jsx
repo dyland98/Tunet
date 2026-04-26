@@ -4,7 +4,7 @@ import { normalizeModalOverlayStyle } from './modalStyles';
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const PRIORITY_FOCUS_SELECTOR =
-  '[data-autofocus], [autofocus], input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [contenteditable="true"]';
+  '[data-autofocus], [autofocus], input:not([disabled]):not([type="hidden"]):not([readonly]), textarea:not([disabled]):not([readonly]), select:not([disabled]), [contenteditable="true"]';
 
 /**
  * Shared accessible modal shell with dialog semantics and focus management.
