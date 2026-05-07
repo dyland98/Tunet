@@ -5,11 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.19.0] — 2026-05-07
 
 ### Added
 
-- Added smart Status Pills for lights that are on, open doors/windows, and open covers, including matching popups with quick actions.
+- Added smart Status Pills for lights that are on, open doors/windows, and open covers, including matching popups with quick actions (#143).
 - Added per-pill entity scoping so smart pills can use all matches, selected entities, or all except selected.
 
 ### Changed
