@@ -25,12 +25,10 @@ export function callService(conn, domain, service, service_data) {
     message.service_data = service_data;
   }
 
-  return conn
-    .sendMessagePromise(message)
-    .catch((error) => {
-      console.error(`Service call failed (${domain}.${service}):`, error);
-      throw error;
-    });
+  return conn.sendMessagePromise(message).catch((error) => {
+    console.error(`Service call failed (${domain}.${service}):`, error);
+    throw error;
+  });
 }
 
 export async function getHistory(

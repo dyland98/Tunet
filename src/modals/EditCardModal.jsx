@@ -2939,7 +2939,7 @@ export default function EditCardModal({
                     ))}
                   </div>
 
-                  <label className="ml-1 mt-4 block text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="mt-4 ml-1 block text-xs font-bold text-[var(--text-muted)] uppercase">
                     {t('vacuum.liveMap') || 'Live Map'}
                   </label>
                   <p className="ml-1 text-[10px] text-[var(--text-muted)]">
@@ -2972,7 +2972,7 @@ export default function EditCardModal({
                     </select>
                   </div>
 
-                  <label className="ml-1 mt-4 block text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="mt-4 ml-1 block text-xs font-bold text-[var(--text-muted)] uppercase">
                     {t('vacuum.roomCleaning') || 'Room Cleaning'}
                   </label>
                   <p className="ml-1 text-[10px] text-[var(--text-muted)]">
@@ -2987,7 +2987,11 @@ export default function EditCardModal({
                     <select
                       value={editSettings?.roomSelectEntityId || ''}
                       onChange={(e) =>
-                        saveCardSetting(editSettingsKey, 'roomSelectEntityId', e.target.value || null)
+                        saveCardSetting(
+                          editSettingsKey,
+                          'roomSelectEntityId',
+                          e.target.value || null
+                        )
                       }
                       className="w-full rounded-xl px-3 py-2 text-sm outline-none"
                       style={{
