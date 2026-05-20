@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Added support for native Home Assistant vacuum area cleaning. To use this, map your vacuum's native room numbers to Home Assistant Areas in the vacuum integration options (such as Roborock integration config). The dashboard will automatically detect these mappings and let you trigger cleaning for individual rooms under the "Romrein" tab.
 - Added interactive Live Map Zoom overlay with full desktop/mobile pan and zoom controls (Plus, Minus, Reset).
 - Added flexible room selection configuration allowing manual overrides for vacuum cleaning rooms using standard inputs.
 - Integrated translation variables for controls, telemetries, and status messages in Nynorsk, Bokmål, German, English, French, Swedish, and Chinese.
