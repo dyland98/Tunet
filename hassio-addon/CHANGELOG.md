@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.20.0
+
+### Changed
+- Includes dashboard release `1.20.0` with full live map zooming/panning, customizable room select integration, modern minimalist history layout, responsive snug heights, and translation files.
+
 ## 1.19.0
 
 ### Added
