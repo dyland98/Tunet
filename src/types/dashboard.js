@@ -167,6 +167,10 @@
  * @property {string} [mediaFilterMode]
  * @property {string[]} [mediaEntityIds]
  * @property {boolean} [showCount]
+ * @property {string} [groupPreset]
+ * @property {string} [groupSelectionMode]
+ * @property {string[]} [groupEntityIds]
+ * @property {boolean} [hideWhenEmpty]
  * @property {string} [mediaSelectionMode]
  * @property {string} [sonosHeadingSource]
  * @property {string} [playerNameDisplayFilter]
@@ -211,6 +215,8 @@
  * @property {(newSettings: HeaderSettings) => void} updateHeaderSettings
  * @property {SectionSpacing} sectionSpacing
  * @property {(partial: Partial<SectionSpacing>) => void} updateSectionSpacing
+ * @property {boolean} cardsOnlyMode
+ * @property {(nextValue: boolean) => void} updateCardsOnlyMode
  * @property {(newSettings: CardSettingsMap) => void} persistCardSettings
  * @property {number} gridGapH
  * @property {(val: number) => void} setGridGapH
@@ -267,6 +273,8 @@
  * @property {(newConfig: PagesConfig) => void} persistConfig
  * @property {CardSettingsMap} cardSettings
  * @property {(newSettings: CardSettingsMap) => void} persistCardSettings
+ * @property {string[]} hiddenCards
+ * @property {(newHidden: string[]) => void} persistHiddenCards
  * @property {(cardId: string) => string} getCardSettingsKey
  * @property {(id: string, setting: string, value: unknown) => void} saveCardSetting
  * @property {(show: boolean) => void} setShowAddCardModal
@@ -344,6 +352,7 @@
  * @property {string[] | null} activeMediaGroupIds
  * @property {string[] | null} activeMediaSessionSensorIds
  * @property {string | null} activeMediaId
+ * @property {{ pill: StatusPillConfig, presetId: string } | null} showStatusGroupModal
  * @property {boolean} showAddCardModal
  * @property {boolean} showConfigModal
  * @property {boolean} showAddPageModal
@@ -379,6 +388,7 @@
  * @property {(value: string[] | null) => void} setActiveMediaGroupIds
  * @property {(value: string[] | null) => void} setActiveMediaSessionSensorIds
  * @property {(value: string | null) => void} setActiveMediaId
+ * @property {(value: { pill: StatusPillConfig, presetId: string } | null) => void} setShowStatusGroupModal
  * @property {(value: boolean) => void} setShowAddCardModal
  * @property {(value: boolean) => void} setShowConfigModal
  * @property {(value: boolean) => void} setShowAddPageModal
@@ -446,7 +456,6 @@
  * @property {number} inactivityTimeout
  * @property {() => void} resetToHome
  * @property {string | null} activeMediaModal
- * @property {EntityMap} entities
  */
 
 /**

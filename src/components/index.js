@@ -12,6 +12,7 @@ export { default as EnergyCard } from './cards/EnergyCard';
 export { default as FanCard } from './cards/FanCard';
 export { default as LightCard } from './cards/LightCard';
 export { default as SwitchCard } from './cards/SwitchCard';
+export { default as LockCard } from './cards/LockCard';
 export { default as MissingEntityCard } from './cards/MissingEntityCard';
 export { MediaPlayerCard, MediaGroupCard } from './cards/MediaCards';
 export { default as PersonStatus } from './cards/PersonStatus';
@@ -36,8 +37,3 @@ export { EmbyLogo, JellyfinLogo, NRKLogo, getServerInfo } from './ui/CustomIcons
 
 // ── Pages ────────────────────────────────────────────────────────────────
 export { default as PageNavigation } from './pages/PageNavigation';
-export { default as MediaPage } from './pages/MediaPage';
-export { default as SonosPage } from './pages/SonosPage';
-export { default as LightsPage } from './pages/LightsPage';
-export { default as BatteryPage } from './pages/BatteryPage';
-export { default as RoomExplorerPage } from './pages/RoomExplorerPage';

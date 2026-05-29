@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const rendererMocks = vi.hoisted(() => ({
   renderSensorCard: vi.fn(() => ({ renderer: 'sensor' })),
   renderLightCard: vi.fn(() => ({ renderer: 'light' })),
+  renderSwitchCard: vi.fn(() => ({ renderer: 'switch' })),
+  renderLockCard: vi.fn(() => ({ renderer: 'lock' })),
   renderAutomationCard: vi.fn(() => ({ renderer: 'automation' })),
   renderCarCard: vi.fn(() => ({ renderer: 'car' })),
   renderEnergyCard: vi.fn(() => ({ renderer: 'energy' })),
@@ -56,6 +58,10 @@ describe('rendering registry dispatch', () => {
     expect(CARD_REGISTRY.some((entry) => entry.prefix === 'cover_card_')).toBe(true);
     expect(CARD_REGISTRY.some((entry) => entry.prefix === 'camera_card_')).toBe(true);
     expect(CARD_REGISTRY.some((entry) => entry.prefix === 'energy_card_')).toBe(true);
+    expect(CARD_REGISTRY.some((entry) => entry.prefix === 'switch_')).toBe(true);
+    expect(CARD_REGISTRY.some((entry) => entry.prefix === 'switch.')).toBe(true);
+    expect(CARD_REGISTRY.some((entry) => entry.prefix === 'lock_card_')).toBe(true);
+    expect(CARD_REGISTRY.some((entry) => entry.prefix === 'lock.')).toBe(true);
   });
 
   it('routes automation card to sensor renderer for sensor-like types', () => {
@@ -107,6 +113,38 @@ describe('rendering registry dispatch', () => {
 
     expect(result).toEqual({ renderer: 'light' });
     expect(rendererMocks.renderLightCard).toHaveBeenCalledOnce();
+  });
+
+  it('routes lock entities to the lock renderer', () => {
+    const { dragProps, getControls, cardStyle, settingsKey, ctx } = base();
+
+    const result = dispatchCardRender(
+      'lock.front_door',
+      dragProps,
+      getControls,
+      cardStyle,
+      settingsKey,
+      ctx
+    );
+
+    expect(result).toEqual({ renderer: 'lock' });
+    expect(rendererMocks.renderLockCard).toHaveBeenCalledOnce();
+  });
+
+  it('routes composite lock cards to the lock renderer', () => {
+    const { dragProps, getControls, cardStyle, settingsKey, ctx } = base();
+
+    const result = dispatchCardRender(
+      'lock_card_1',
+      dragProps,
+      getControls,
+      cardStyle,
+      settingsKey,
+      ctx
+    );
+
+    expect(result).toEqual({ renderer: 'lock' });
+    expect(rendererMocks.renderLockCard).toHaveBeenCalledOnce();
   });
 
   it('uses sensor renderer on settings page fallback', () => {

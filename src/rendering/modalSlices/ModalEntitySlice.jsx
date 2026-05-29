@@ -255,6 +255,7 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 vacuumId={activeVacuumId}
                 vacuumSettings={vacuumSettings}
                 conn={conn}
+                getEntityImageUrl={getEntityImageUrl}
               />
             );
           })()}

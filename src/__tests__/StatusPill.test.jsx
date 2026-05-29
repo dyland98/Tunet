@@ -75,6 +75,24 @@ describe('StatusPill', () => {
     expect(icon?.style.animationDuration).toBe('8s');
   });
 
+  it('applies pulse animation to the icon instead of the full pill wrapper', () => {
+    const { container } = render(
+      <StatusPill
+        pill={{ ...basePill, animationPreset: 'pulse-medium' }}
+        entity={{ ...baseEntity, state: 'on' }}
+        t={(key) => key}
+      />
+    );
+
+    const wrapper = container.firstElementChild;
+    const icon = container.querySelector('svg');
+
+    expect(wrapper?.getAttribute('class') || '').not.toContain('animate-pulse');
+    expect(icon).not.toBeNull();
+    expect(icon?.getAttribute('class') || '').toContain('status-pill-icon-pulse');
+    expect(icon?.style.getPropertyValue('--status-pill-pulse-duration')).toBe('2.2s');
+  });
+
   it('runs the selected rotation animation on conditional pills regardless of entity state', () => {
     const { container } = render(
       <StatusPill
@@ -89,5 +107,27 @@ describe('StatusPill', () => {
     expect(icon).not.toBeNull();
     expect(icon?.getAttribute('class') || '').toContain('animate-spin');
     expect(icon?.style.animationDuration).toBe('12s');
+  });
+
+  it('renders smart group pills with their synthetic count entity', () => {
+    render(
+      <StatusPill
+        pill={{ ...basePill, type: 'group_status', icon: 'Lightbulb', showCount: true }}
+        entity={{
+          entity_id: 'status_group.lights_on',
+          state: '2',
+          attributes: {
+            friendly_name: 'Lights on',
+            statusPillSublabel: '2',
+            statusPillCount: 2,
+          },
+        }}
+        badge={2}
+        t={(key) => key}
+      />
+    );
+
+    expect(screen.getByText('Lights on')).toBeInTheDocument();
+    expect(screen.getAllByText('2')).toHaveLength(2);
   });
 });

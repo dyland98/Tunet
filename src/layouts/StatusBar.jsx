@@ -1,7 +1,7 @@
 import { Edit2 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
-import { useHomeAssistant, useModalState, usePages } from '../contexts';
-import { isSonosMediaEntity } from '../utils';
+import { useHomeAssistant, useModalActions, usePages } from '../contexts';
+import { isSonosMediaEntity, resolveStatusGroupPill, STATUS_GROUP_PILL_TYPE } from '../utils';
 
 /**
  * StatusBar component showing various status indicators
@@ -32,8 +32,9 @@ export default function StatusBar({
     setActiveMediaSessionSensorIds,
     setActiveMediaModal,
     setShowAlarmModal,
+    setShowStatusGroupModal,
     setShowStatusPillsConfig,
-  } = useModalState();
+  } = useModalActions();
 
   const getSonosEntities = () =>
     Object.keys(entities)
@@ -97,7 +98,9 @@ export default function StatusBar({
 
   return (
     <div className="mt-0 flex w-full items-center justify-between font-sans">
-      <div className={`flex min-w-0 items-center ${isMobile ? 'gap-1.5 overflow-x-auto overflow-y-hidden scrollbar-hide' : 'flex-wrap gap-2.5'}`}>
+      <div
+        className={`flex min-w-0 items-center ${isMobile ? 'scrollbar-hide gap-1.5 overflow-x-auto overflow-y-hidden' : 'flex-wrap gap-2.5'}`}
+      >
         {/* Edit button (only in edit mode) - at first position */}
         {editMode && (
           <button
@@ -275,6 +278,37 @@ export default function StatusBar({
                           setActiveMediaSessionSensorIds(null);
                           setActiveMediaModal('sonos');
                         }
+                      : undefined
+                  }
+                />
+              );
+            }
+
+            if (pill.type === STATUS_GROUP_PILL_TYPE) {
+              const groupData = resolveStatusGroupPill(pill, entities, t);
+              if (!groupData.shouldRender) return null;
+
+              return (
+                <StatusPill
+                  key={pill.id}
+                  entity={groupData.syntheticEntity}
+                  pill={{
+                    ...pill,
+                    icon: pill.icon || groupData.preset.icon,
+                    iconBgColor: pill.iconBgColor || groupData.preset.iconBgColor,
+                    iconColor: pill.iconColor || groupData.preset.iconColor,
+                  }}
+                  getA={getA}
+                  t={t}
+                  isMobile={isMobile}
+                  badge={pill.showCount && groupData.count > 0 ? groupData.count : undefined}
+                  onClick={
+                    pill.clickable !== false
+                      ? () =>
+                          setShowStatusGroupModal({
+                            pill,
+                            presetId: groupData.preset.id,
+                          })
                       : undefined
                   }
                 />
