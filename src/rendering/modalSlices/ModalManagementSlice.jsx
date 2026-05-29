@@ -93,6 +93,8 @@ export function ModalManagementSlice({
     setNordpoolDecimals,
     selectedSpacerVariant,
     setSelectedSpacerVariant,
+    cameraUrlInput,
+    setCameraUrlInput,
     onAddSelected,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
@@ -148,6 +150,8 @@ export function ModalManagementSlice({
             setNordpoolDecimals={setNordpoolDecimals}
             selectedSpacerVariant={selectedSpacerVariant}
             setSelectedSpacerVariant={setSelectedSpacerVariant}
+            cameraUrlInput={cameraUrlInput}
+            setCameraUrlInput={setCameraUrlInput}
             onAddSelected={onAddSelected}
             onAddRoom={(areas, areaEntitiesById) => {
               const payload = buildRoomCardsPayload({

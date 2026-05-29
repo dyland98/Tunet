@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { Camera, AlertCircle } from '../../icons';
 import { getIconComponent } from '../../icons';
+import Go2RtcWebRtcPlayer from '../media/Go2RtcWebRtcPlayer';
 
 function buildCameraUrl(basePath, entityId, accessToken) {
   const tokenQuery = accessToken ? `?token=${encodeURIComponent(accessToken)}` : '';
@@ -31,6 +32,24 @@ function normalizeStreamEngine(value) {
   return 'auto';
 }
 
+function getGo2rtcWebRtcUrl(url) {
+  if (!url) return null;
+  try {
+    const origin = globalThis.window?.location?.origin || 'http://localhost';
+    const parsed = new URL(url, origin);
+    if (parsed.protocol === 'ws:' || parsed.protocol === 'wss:') return parsed.toString();
+    const src = parsed.searchParams.get('src');
+    const isGo2RtcPage = parsed.pathname.toLowerCase().endsWith('/stream.html');
+    const isGo2RtcWs = parsed.pathname.toLowerCase().endsWith('/api/ws');
+    if (!src || (!isGo2RtcPage && !isGo2RtcWs)) return null;
+    parsed.protocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:';
+    parsed.pathname = '/api/ws';
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 const CameraCard = memo(/** @param {any} props */ function CameraCard({
   cardId,
   entityId,
@@ -54,12 +73,19 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   const previousMotionActiveRef = useRef(false);
 
   const attrs = entity?.attributes || {};
+  const directUrl = String(settings?.cameraDirectUrl || settings?.cameraWebrtcUrl || '').trim();
   const isOffline =
-    !entity ||
-    entity.state === 'unavailable' ||
-    entity.state === 'unknown' ||
-    entity.state === 'off';
-  const name = customNames?.[cardId] || attrs.friendly_name || entityId;
+    !directUrl &&
+    (!entity ||
+      entity.state === 'unavailable' ||
+      entity.state === 'unknown' ||
+      entity.state === 'off');
+  const name =
+    customNames?.[cardId] ||
+    attrs.friendly_name ||
+    entityId ||
+    t?.('addCard.type.camera') ||
+    'Camera';
   const iconName = customIcons?.[cardId] || attrs.icon;
   const Icon = iconName ? getIconComponent(iconName) || Camera : Camera;
   const isSmall = size === 'small';
@@ -67,39 +93,52 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   const accessToken = attrs.access_token;
 
   const haStreamUrl = useMemo(
-    () => getEntityImageUrl(buildCameraUrl('/api/camera_proxy_stream', entityId, accessToken)),
+    () =>
+      entityId
+        ? getEntityImageUrl(buildCameraUrl('/api/camera_proxy_stream', entityId, accessToken))
+        : null,
     [entityId, accessToken, getEntityImageUrl]
   );
 
   const snapshotUrl = useMemo(() => {
+    if (!entityId) return null;
     const base = buildCameraUrl('/api/camera_proxy', entityId, accessToken) || attrs.entity_picture;
     return getEntityImageUrl(appendTs(base, refreshTs));
   }, [entityId, accessToken, attrs.entity_picture, refreshTs, getEntityImageUrl]);
 
   const streamEngine = normalizeStreamEngine(settings?.cameraStreamEngine);
-  const webrtcTemplate = (settings?.cameraWebrtcUrl || '').trim();
+  const webrtcTemplate = directUrl;
   const webrtcUrl = useMemo(() => {
     const resolved = resolveCameraTemplate(webrtcTemplate, entityId);
     return resolved ? getEntityImageUrl(resolved) : null;
   }, [webrtcTemplate, entityId, getEntityImageUrl]);
+  const go2rtcWebRtcUrl = useMemo(() => getGo2rtcWebRtcUrl(webrtcUrl), [webrtcUrl]);
 
   const preferredSource = useMemo(() => {
     if (streamEngine === 'snapshot') return 'snapshot';
     if (streamEngine === 'webrtc') {
+      if (go2rtcWebRtcUrl) return 'go2rtc-webrtc';
       if (webrtcUrl) return 'webrtc';
       return 'ha';
     }
     if (streamEngine === 'ha') return 'ha';
+    if (go2rtcWebRtcUrl) return 'go2rtc-webrtc';
     if (webrtcUrl) return 'webrtc';
     return 'ha';
-  }, [streamEngine, webrtcUrl]);
+  }, [streamEngine, webrtcUrl, go2rtcWebRtcUrl]);
 
   useEffect(() => {
     setStreamSource(preferredSource);
   }, [preferredSource]);
 
   const previewUrl =
-    streamSource === 'webrtc' ? webrtcUrl : streamSource === 'ha' ? haStreamUrl : snapshotUrl;
+    streamSource === 'go2rtc-webrtc'
+      ? go2rtcWebRtcUrl
+      : streamSource === 'webrtc'
+      ? webrtcUrl
+      : streamSource === 'ha'
+        ? haStreamUrl
+        : snapshotUrl;
 
   const handleStreamError = useCallback(() => {
     setStreamSource((current) => {
@@ -162,13 +201,22 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
         {controls}
         <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-[var(--glass-bg)]">
           {!isOffline ? (
-            <img
-              src={previewUrl}
-              alt={name}
-              className="h-full w-full object-cover"
-              referrerPolicy="no-referrer"
-              onError={handleStreamError}
-            />
+            streamSource === 'go2rtc-webrtc' ? (
+              <Go2RtcWebRtcPlayer
+                url={previewUrl}
+                title={name}
+                className="h-full w-full object-cover"
+                onError={handleStreamError}
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                alt={name}
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={handleStreamError}
+              />
+            )
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[var(--text-secondary)]">
               <Icon className="h-6 w-6 stroke-[1.5px] transition-transform duration-300 group-hover:scale-110" />
@@ -205,13 +253,22 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
       {controls}
 
       {!isOffline ? (
-        <img
-          src={previewUrl}
-          alt={name}
-          className="absolute inset-0 h-full w-full object-cover"
-          referrerPolicy="no-referrer"
-          onError={handleStreamError}
-        />
+        streamSource === 'go2rtc-webrtc' ? (
+          <Go2RtcWebRtcPlayer
+            url={previewUrl}
+            title={name}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={handleStreamError}
+          />
+        ) : (
+          <img
+            src={previewUrl}
+            alt={name}
+            className="absolute inset-0 h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+            onError={handleStreamError}
+          />
+        )
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-[var(--glass-bg)]">
           <div className="flex flex-col items-center gap-2 text-[var(--text-secondary)] opacity-70">

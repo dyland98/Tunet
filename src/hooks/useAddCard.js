@@ -48,6 +48,7 @@ export function useAddCard({
   const [selectedNordpoolId, setSelectedNordpoolId] = useState(null);
   const [nordpoolDecimals, setNordpoolDecimals] = useState(2);
   const [selectedSpacerVariant, setSelectedSpacerVariant] = useState('divider');
+  const [cameraUrlInput, setCameraUrlInput] = useState('');
 
   // ── Sync target page to active page ────────────────────────────────────
   useEffect(() => {
@@ -77,6 +78,7 @@ export function useAddCard({
       setSelectedNordpoolId(null);
       setNordpoolDecimals(2);
       setSelectedSpacerVariant('divider');
+      setCameraUrlInput('');
     }
   }, [showAddCardModal]);
 
@@ -107,6 +109,7 @@ export function useAddCard({
     setCostSelectionTarget('today');
     setSelectedNordpoolId(null);
     setNordpoolDecimals(2);
+    setCameraUrlInput('');
   }, [addCardType, showAddCardModal]);
 
   // ── Labels ─────────────────────────────────────────────────────────────
@@ -188,6 +191,7 @@ export function useAddCard({
       selectedCostMonthId,
       selectedNordpoolId,
       nordpoolDecimals,
+      cameraUrlInput: options.cameraUrl || cameraUrlInput,
       selectedSpacerVariant: options.spacerVariant || selectedSpacerVariant,
       cardSettings,
       persistCardSettings,
@@ -239,6 +243,8 @@ export function useAddCard({
     setNordpoolDecimals,
     selectedSpacerVariant,
     setSelectedSpacerVariant,
+    cameraUrlInput,
+    setCameraUrlInput,
     onAddSelected,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,

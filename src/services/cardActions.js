@@ -19,6 +19,7 @@ export const handleAddSelected = (ctx) => {
     selectedCostMonthId,
     selectedNordpoolId,
     nordpoolDecimals,
+    cameraUrlInput,
     selectedSpacerVariant,
     cardSettings,
     persistCardSettings,
@@ -190,6 +191,22 @@ export const handleAddSelected = (ctx) => {
     }
 
     case 'camera': {
+      const directCameraUrl = String(cameraUrlInput || '').trim();
+      if (directCameraUrl) {
+        const cardId = `camera_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        commitSingleCard(
+          cardId,
+          {
+            cameraId: null,
+            cameraStreamEngine: 'webrtc',
+            cameraWebrtcUrl: directCameraUrl,
+            cameraDirectUrl: directCameraUrl,
+          },
+          { openEdit: true }
+        );
+        setSelectedEntities([]);
+        return;
+      }
       const cameraEntities = selectedEntitiesForType();
       if (cameraEntities.length === 0) return;
       const newSettings = { ...cardSettings };

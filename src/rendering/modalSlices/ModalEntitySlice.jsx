@@ -471,7 +471,10 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             cardSettings[cameraSettingsKey] || cardSettings[showCameraModal] || {};
           const cameraEntityId = cameraSettings.cameraId;
           const cameraEntity = cameraEntityId ? entities[cameraEntityId] : null;
-          if (!cameraEntityId || !cameraEntity) return null;
+          const hasDirectCameraUrl = !!String(
+            cameraSettings.cameraDirectUrl || cameraSettings.cameraWebrtcUrl || ''
+          ).trim();
+          if (!hasDirectCameraUrl && (!cameraEntityId || !cameraEntity)) return null;
           return (
             <ModalSuspense>
               <CameraModal

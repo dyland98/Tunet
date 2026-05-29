@@ -46,6 +46,8 @@ export const createApp = ({
       "font-src 'self' https://fonts.gstatic.com",
       // Images: own, HA instance (any origin – URL is user-configured), weather icons, media logos, map tiles, data/blob URIs
       "img-src 'self' data: blob: http: https: https://cdn.jsdelivr.net https://cdn.simpleicons.org https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org",
+      // Media: camera streams may be user-configured direct URLs or browser-created MSE blob URLs
+      "media-src 'self' blob: http: https:",
       // WebSocket connections to the user's HA instance (any origin, since URL is user-configured)
       "connect-src 'self' ws: wss: http: https:",
       // Leaflet map iframe

@@ -204,6 +204,8 @@ function AddCardContent({
   setNordpoolDecimals,
   selectedSpacerVariant,
   setSelectedSpacerVariant,
+  cameraUrlInput,
+  setCameraUrlInput,
   onAddSelected,
   onAddRoom,
   conn,
@@ -763,6 +765,20 @@ function AddCardContent({
   const renderGenericEntityList = () => {
     return (
       <div>
+        {addCardType === 'camera' && (
+          <div className="mb-5 space-y-2">
+            <p className="mb-2 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+              {getLabel('addCard.cameraDirectUrl', 'Direct stream URL')}
+            </p>
+            <input
+              type="url"
+              value={cameraUrlInput || ''}
+              onChange={(event) => setCameraUrlInput(event.target.value)}
+              placeholder="http://192.168.0.212:1984/stream.html?src=entree"
+              className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3 text-sm text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
+            />
+          </div>
+        )}
         {addCardType === 'cost' && (
           <div className="mb-5">
             <p className="mb-2 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
@@ -1168,20 +1184,24 @@ function AddCardContent({
         </div>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-[var(--glass-border)] pt-6">
-          {usesMultiSelectWithCalendar && selectedEntities.length > 0 && (
-            <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
-              <Plus className="h-5 w-5" />{' '}
-              {addCardType === 'media'
-                ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}`
-                : addCardType === 'sonos'
+          {usesMultiSelectWithCalendar &&
+            (selectedEntities.length > 0 ||
+              (addCardType === 'camera' && String(cameraUrlInput || '').trim())) && (
+              <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
+                <Plus className="h-5 w-5" />{' '}
+                {addCardType === 'media'
                   ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}`
-                : addCardType === 'calendar'
-                  ? `${t('addCard.add')} ${t('addCard.type.calendar') || 'Calendar'} ${t('addCard.cards')}`
-                  : addCardType === 'camera'
-                    ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cameraCard') || 'camera cards'}`
-                    : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
-            </button>
-          )}
+                  : addCardType === 'sonos'
+                    ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}`
+                    : addCardType === 'calendar'
+                      ? `${t('addCard.add')} ${t('addCard.type.calendar') || 'Calendar'} ${t('addCard.cards')}`
+                      : addCardType === 'camera'
+                        ? String(cameraUrlInput || '').trim()
+                          ? `${t('addCard.add')} ${t('addCard.type.camera') || 'Camera'}`
+                          : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cameraCard') || 'camera cards'}`
+                        : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
+              </button>
+            )}
           {addCardType === 'cost' && selectedCostTodayId && selectedCostMonthId && (
             <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
               <Plus className="h-5 w-5" /> {t('addCard.costCard')}
@@ -1241,6 +1261,7 @@ function areAddCardPropsEqual(prev, next) {
     prev.selectedAndroidTVRemoteId === next.selectedAndroidTVRemoteId &&
     prev.selectedNordpoolId === next.selectedNordpoolId &&
     prev.nordpoolDecimals === next.nordpoolDecimals &&
+    prev.cameraUrlInput === next.cameraUrlInput &&
     prev.t === next.t
   );
 }

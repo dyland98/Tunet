@@ -23,9 +23,10 @@ export function renderCameraCard(cardId, dragProps, getControls, cardStyle, sett
   const settings = getSettings(cardSettings, settingsKey, cardId);
   const entityId = settings.cameraId;
   const entity = entityId ? entities[entityId] : null;
+  const hasDirectUrl = !!String(settings.cameraDirectUrl || settings.cameraWebrtcUrl || '').trim();
   const sizeSetting = settings.size;
 
-  if (!entity || !entityId) {
+  if (!hasDirectUrl && (!entity || !entityId)) {
     return renderMissingEntityWhenReady(ctx, {
       cardId,
       dragProps,

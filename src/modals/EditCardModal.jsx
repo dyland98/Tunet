@@ -1904,6 +1904,20 @@ export default function EditCardModal({
                     editSettings.cameraStreamEngine || 'auto'
                   ).toLowerCase();
                   const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
+                  const extraCameraUrls = Array.isArray(editSettings.cameraExtraUrls)
+                    ? editSettings.cameraExtraUrls
+                    : [];
+                  const updateExtraCameraUrl = (index, value) => {
+                    const nextUrls = [...extraCameraUrls];
+                    nextUrls[index] = value;
+                    while (
+                      nextUrls.length > 0 &&
+                      !String(nextUrls[nextUrls.length - 1] || '').trim()
+                    ) {
+                      nextUrls.pop();
+                    }
+                    saveCardSetting(editSettingsKey, 'cameraExtraUrls', nextUrls);
+                  };
                   const recommendedWebrtc = '/api/webrtc?src={entity_object_id}';
                   const refreshMode = editSettings.cameraRefreshMode || 'interval';
                   const refreshInterval = editSettings.cameraRefreshInterval || 10;
@@ -1990,6 +2004,31 @@ export default function EditCardModal({
                           </p>
                         </div>
                       )}
+
+                      <div className="space-y-3">
+                        <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                          {t('camera.overlayCameras') || 'Overlay cameras'}
+                        </label>
+                        {[0, 1].map((index) => (
+                          <input
+                            key={`camera-extra-url-${index}`}
+                            type="text"
+                            value={extraCameraUrls[index] || ''}
+                            onChange={(e) => updateExtraCameraUrl(index, e.target.value)}
+                            placeholder={index === 0 ? 'Camera 2 URL' : 'Camera 3 URL'}
+                            className="w-full rounded-xl border px-4 py-2.5 text-sm transition-colors outline-none"
+                            style={{
+                              backgroundColor: 'var(--glass-bg)',
+                              borderColor: 'var(--glass-border)',
+                              color: 'var(--text-primary)',
+                            }}
+                          />
+                        ))}
+                        <p className="px-1 text-[11px] text-[var(--text-muted)]">
+                          {t('camera.overlayCamerasHint') ||
+                            'Shown only in the camera overlay. The dashboard keeps using the first camera.'}
+                        </p>
+                      </div>
 
                       {/* Refresh mode */}
                       <div className="space-y-2">
