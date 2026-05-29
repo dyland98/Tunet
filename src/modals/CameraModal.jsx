@@ -96,7 +96,9 @@ export default function CameraModal({
   const streamUrl = getEntityImageUrl(streamBase);
   const snapshotUrl = getEntityImageUrl(appendTs(snapshotBase, refreshTs));
   const streamEngine = normalizeStreamEngine(settings?.cameraStreamEngine);
-  const webrtcTemplate = directUrl;
+  const overlayPrimaryTemplate = String(settings?.cameraOverlayUrl || '').trim();
+  const primaryStreamTemplate = overlayPrimaryTemplate || directUrl;
+  const webrtcTemplate = primaryStreamTemplate;
   const webrtcUrl = useMemo(() => {
     const resolved = resolveCameraTemplate(webrtcTemplate, activeEntityId);
     return resolved ? getEntityImageUrl(resolved) : null;

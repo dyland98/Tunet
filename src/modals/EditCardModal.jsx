@@ -1904,6 +1904,8 @@ export default function EditCardModal({
                     editSettings.cameraStreamEngine || 'auto'
                   ).toLowerCase();
                   const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
+                  const previewUrl = editSettings.cameraPreviewUrl || '';
+                  const overlayPrimaryUrl = editSettings.cameraOverlayUrl || '';
                   const extraCameraUrls = Array.isArray(editSettings.cameraExtraUrls)
                     ? editSettings.cameraExtraUrls
                     : [];
@@ -2005,17 +2007,45 @@ export default function EditCardModal({
                         </div>
                       )}
 
+                      <div className="space-y-2">
+                        <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                          {t('camera.previewUrl') || 'Dashboard preview URL'}
+                        </label>
+                        <input
+                          type="text"
+                          value={previewUrl}
+                          onChange={(e) =>
+                            saveCardSetting(editSettingsKey, 'cameraPreviewUrl', e.target.value)
+                          }
+                          placeholder="http://192.168.0.212:1984/stream.html?src=entree_sub"
+                          className="w-full rounded-xl border px-4 py-2.5 text-sm transition-colors outline-none"
+                          style={{
+                            backgroundColor: 'var(--glass-bg)',
+                            borderColor: 'var(--glass-border)',
+                            color: 'var(--text-primary)',
+                          }}
+                        />
+                        <p className="px-1 text-[11px] text-[var(--text-muted)]">
+                          {t('camera.previewUrlHint') ||
+                            'Use a lower quality stream here to reduce dashboard resource usage.'}
+                        </p>
+                      </div>
+
                       <div className="space-y-3">
                         <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
                           {t('camera.overlayCameras') || 'Overlay cameras'}
                         </label>
-                        {[0, 1].map((index) => (
+                        <div className="space-y-1.5">
+                          <p className="px-1 text-[11px] font-bold text-[var(--text-secondary)]">
+                            {t('camera.overlayCamera1') || 'Camera 1 - large'}
+                          </p>
                           <input
-                            key={`camera-extra-url-${index}`}
                             type="text"
-                            value={extraCameraUrls[index] || ''}
-                            onChange={(e) => updateExtraCameraUrl(index, e.target.value)}
-                            placeholder={index === 0 ? 'Camera 2 URL' : 'Camera 3 URL'}
+                            value={overlayPrimaryUrl}
+                            onChange={(e) =>
+                              saveCardSetting(editSettingsKey, 'cameraOverlayUrl', e.target.value)
+                            }
+                            placeholder="Camera 1 overlay URL"
                             className="w-full rounded-xl border px-4 py-2.5 text-sm transition-colors outline-none"
                             style={{
                               backgroundColor: 'var(--glass-bg)',
@@ -2023,10 +2053,31 @@ export default function EditCardModal({
                               color: 'var(--text-primary)',
                             }}
                           />
+                        </div>
+                        {[0, 1].map((index) => (
+                          <div key={`camera-extra-url-${index}`} className="space-y-1.5">
+                            <p className="px-1 text-[11px] font-bold text-[var(--text-secondary)]">
+                              {index === 0
+                                ? t('camera.overlayCamera2') || 'Camera 2 - top right'
+                                : t('camera.overlayCamera3') || 'Camera 3 - bottom right'}
+                            </p>
+                            <input
+                              type="text"
+                              value={extraCameraUrls[index] || ''}
+                              onChange={(e) => updateExtraCameraUrl(index, e.target.value)}
+                              placeholder={index === 0 ? 'Camera 2 URL' : 'Camera 3 URL'}
+                              className="w-full rounded-xl border px-4 py-2.5 text-sm transition-colors outline-none"
+                              style={{
+                                backgroundColor: 'var(--glass-bg)',
+                                borderColor: 'var(--glass-border)',
+                                color: 'var(--text-primary)',
+                              }}
+                            />
+                          </div>
                         ))}
                         <p className="px-1 text-[11px] text-[var(--text-muted)]">
                           {t('camera.overlayCamerasHint') ||
-                            'Shown only in the camera overlay. The dashboard keeps using the first camera.'}
+                            'Shown only in the camera overlay. Leave the first field empty to use the main camera URL.'}
                         </p>
                       </div>
 

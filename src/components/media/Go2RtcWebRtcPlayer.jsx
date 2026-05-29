@@ -42,7 +42,11 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
     let sourceBuffer = null;
     const pendingBuffers = [];
     const video = videoRef.current;
-    const debug = (...args) => console.debug('[Tunet go2rtc]', ...args);
+    const debug = (...args) => {
+      if (globalThis.localStorage?.getItem('tunetCameraDebug') === '1') {
+        console.debug('[Tunet go2rtc]', ...args);
+      }
+    };
     const fail = () => onErrorRef.current?.();
 
     debug('connecting', url);

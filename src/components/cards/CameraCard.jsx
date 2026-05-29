@@ -74,6 +74,7 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
 
   const attrs = entity?.attributes || {};
   const directUrl = String(settings?.cameraDirectUrl || settings?.cameraWebrtcUrl || '').trim();
+  const previewDirectUrl = String(settings?.cameraPreviewUrl || '').trim();
   const isOffline =
     !directUrl &&
     (!entity ||
@@ -107,7 +108,7 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   }, [entityId, accessToken, attrs.entity_picture, refreshTs, getEntityImageUrl]);
 
   const streamEngine = normalizeStreamEngine(settings?.cameraStreamEngine);
-  const webrtcTemplate = directUrl;
+  const webrtcTemplate = previewDirectUrl || directUrl;
   const webrtcUrl = useMemo(() => {
     const resolved = resolveCameraTemplate(webrtcTemplate, entityId);
     return resolved ? getEntityImageUrl(resolved) : null;
@@ -116,6 +117,10 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
 
   const preferredSource = useMemo(() => {
     if (streamEngine === 'snapshot') return 'snapshot';
+    if (previewDirectUrl) {
+      if (go2rtcWebRtcUrl) return 'go2rtc-webrtc';
+      if (webrtcUrl) return 'webrtc';
+    }
     if (streamEngine === 'webrtc') {
       if (go2rtcWebRtcUrl) return 'go2rtc-webrtc';
       if (webrtcUrl) return 'webrtc';
@@ -125,11 +130,19 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
     if (go2rtcWebRtcUrl) return 'go2rtc-webrtc';
     if (webrtcUrl) return 'webrtc';
     return 'ha';
-  }, [streamEngine, webrtcUrl, go2rtcWebRtcUrl]);
+  }, [streamEngine, previewDirectUrl, webrtcUrl, go2rtcWebRtcUrl]);
 
   useEffect(() => {
     setStreamSource(preferredSource);
   }, [preferredSource]);
+
+  useEffect(() => {
+    if (!previewDirectUrl || !go2rtcWebRtcUrl) return;
+    console.debug('[Tunet camera preview]', {
+      cardId,
+      source: go2rtcWebRtcUrl,
+    });
+  }, [cardId, previewDirectUrl, go2rtcWebRtcUrl]);
 
   const previewUrl =
     streamSource === 'go2rtc-webrtc'
