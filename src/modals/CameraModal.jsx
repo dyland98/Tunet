@@ -63,6 +63,7 @@ export default function CameraModal({
   customIcon,
   getEntityImageUrl,
   settings,
+  keepMounted = false,
   t,
 }) {
   const [viewMode, setViewMode] = useState('stream');
@@ -197,6 +198,7 @@ export default function CameraModal({
             url={source.go2rtcUrl}
             title={source.title}
             className={mediaClassName}
+            debugLabel={keepMounted ? `${source.id} ${source.go2rtcUrl}` : undefined}
             onError={source.id === 'primary' ? handleStreamError : undefined}
           />
         ) : (
@@ -213,11 +215,12 @@ export default function CameraModal({
     );
   };
 
-  if (!show || (!activeEntityId && !directUrl)) return null;
+  if ((!show && !keepMounted) || (!activeEntityId && !directUrl)) return null;
 
   return (
     <AccessibleModalShell
       open={show && (!!activeEntityId || !!directUrl)}
+      keepMounted={keepMounted}
       onClose={handleClose}
       titleId={modalTitleId}
       overlayClassName="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-5"

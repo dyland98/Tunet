@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { Camera, AlertCircle } from '../../icons';
 import { getIconComponent } from '../../icons';
 import Go2RtcWebRtcPlayer from '../media/Go2RtcWebRtcPlayer';
+import CameraModal from '../../modals/CameraModal';
 
 function buildCameraUrl(basePath, entityId, accessToken) {
   const tokenQuery = accessToken ? `?token=${encodeURIComponent(accessToken)}` : '';
@@ -69,12 +70,14 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
 }) {
   const [refreshTs, setRefreshTs] = useState(Date.now());
   const [streamSource, setStreamSource] = useState('ha');
+  const [showWarmOverlay, setShowWarmOverlay] = useState(false);
   const intervalRef = useRef(null);
   const previousMotionActiveRef = useRef(false);
 
   const attrs = entity?.attributes || {};
   const directUrl = String(settings?.cameraDirectUrl || settings?.cameraWebrtcUrl || '').trim();
   const previewDirectUrl = String(settings?.cameraPreviewUrl || '').trim();
+  const keepOverlayStreamsAlive = settings?.cameraKeepOverlayStreamsAlive === true;
   const isOffline =
     !directUrl &&
     (!entity ||
@@ -114,6 +117,35 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
     return resolved ? getEntityImageUrl(resolved) : null;
   }, [webrtcTemplate, entityId, getEntityImageUrl]);
   const go2rtcWebRtcUrl = useMemo(() => getGo2rtcWebRtcUrl(webrtcUrl), [webrtcUrl]);
+  const warmOverlayUrls = useMemo(() => {
+    if (!keepOverlayStreamsAlive) return [];
+    const templates = [
+      settings?.cameraOverlayUrl,
+      ...(Array.isArray(settings?.cameraExtraUrls) ? settings.cameraExtraUrls : []),
+    ];
+    const activeUrl = go2rtcWebRtcUrl || webrtcUrl;
+    return Array.from(
+      new Set(
+        templates
+          .slice(0, 3)
+          .map((urlTemplate) => {
+            const resolved = resolveCameraTemplate(String(urlTemplate || '').trim(), entityId);
+            if (!resolved) return null;
+            const url = getEntityImageUrl(resolved);
+            return getGo2rtcWebRtcUrl(url);
+          })
+          .filter((url) => url && url !== activeUrl)
+      )
+    );
+  }, [
+    keepOverlayStreamsAlive,
+    settings?.cameraOverlayUrl,
+    settings?.cameraExtraUrls,
+    entityId,
+    getEntityImageUrl,
+    go2rtcWebRtcUrl,
+    webrtcUrl,
+  ]);
 
   const preferredSource = useMemo(() => {
     if (streamEngine === 'snapshot') return 'snapshot';
@@ -137,12 +169,12 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   }, [preferredSource]);
 
   useEffect(() => {
-    if (!previewDirectUrl || !go2rtcWebRtcUrl) return;
-    console.debug('[Tunet camera preview]', {
+    if (!keepOverlayStreamsAlive || warmOverlayUrls.length === 0) return;
+    console.debug('[Tunet camera warm]', 'enabled', {
       cardId,
-      source: go2rtcWebRtcUrl,
+      sources: warmOverlayUrls,
     });
-  }, [cardId, previewDirectUrl, go2rtcWebRtcUrl]);
+  }, [cardId, keepOverlayStreamsAlive, warmOverlayUrls]);
 
   const previewUrl =
     streamSource === 'go2rtc-webrtc'
@@ -208,10 +240,26 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
         style={cardStyle}
         onClick={(e) => {
           e.stopPropagation();
-          if (!editMode) onOpen?.();
+          if (editMode) return;
+          if (keepOverlayStreamsAlive) setShowWarmOverlay(true);
+          else onOpen?.();
         }}
       >
         {controls}
+        {keepOverlayStreamsAlive && (
+          <CameraModal
+            show={showWarmOverlay}
+            keepMounted
+            onClose={() => setShowWarmOverlay(false)}
+            entityId={entityId}
+            entity={entity}
+            customName={customNames?.[cardId]}
+            customIcon={customIcons?.[cardId]}
+            getEntityImageUrl={getEntityImageUrl}
+            settings={settings}
+            t={t}
+          />
+        )}
         <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-[var(--glass-bg)]">
           {!isOffline ? (
             streamSource === 'go2rtc-webrtc' ? (
@@ -260,10 +308,26 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
       style={cardStyle}
       onClick={(e) => {
         e.stopPropagation();
-        if (!editMode) onOpen?.();
+        if (editMode) return;
+        if (keepOverlayStreamsAlive) setShowWarmOverlay(true);
+        else onOpen?.();
       }}
     >
       {controls}
+      {keepOverlayStreamsAlive && (
+        <CameraModal
+          show={showWarmOverlay}
+          keepMounted
+          onClose={() => setShowWarmOverlay(false)}
+          entityId={entityId}
+          entity={entity}
+          customName={customNames?.[cardId]}
+          customIcon={customIcons?.[cardId]}
+          getEntityImageUrl={getEntityImageUrl}
+          settings={settings}
+          t={t}
+        />
+      )}
 
       {!isOffline ? (
         streamSource === 'go2rtc-webrtc' ? (

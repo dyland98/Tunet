@@ -773,6 +773,8 @@
   "updates.readMore": "Les mer",
   "map.lastSeenHere": "Sist sett her",
   "camera.intervalSeconds": "Oppdater hvert (sekund)",
+  "camera.keepOverlayStreamsAlive": "Hold overlay-strømmer varme",
+  "camera.keepOverlayStreamsAliveHint": "Starter overlay-strømmene fra dashboardet slik at overlayet åpnes raskere. Bruker mer CPU/nettverk.",
   "camera.unavailable": "Kamera ikke tilgjengelig",
   "camera.gate": "Porten",
   "camera.gateAlt": "Kamera Porten",

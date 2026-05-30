@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { normalizeModalOverlayStyle } from './modalStyles';
 
 const FOCUSABLE_SELECTOR =
@@ -18,6 +19,7 @@ const PRIORITY_FOCUS_SELECTOR =
  * @param {Object} [props.overlayStyle]
  * @param {string} [props.panelClassName]
  * @param {Object} [props.panelStyle]
+ * @param {boolean} [props.keepMounted]
  * @param {Function} props.children
  */
 export default function AccessibleModalShell({
@@ -29,6 +31,7 @@ export default function AccessibleModalShell({
   overlayStyle,
   panelClassName,
   panelStyle,
+  keepMounted = false,
   children,
 }) {
   const fallbackTitleId = useId().replace(/:/g, '');
@@ -105,16 +108,30 @@ export default function AccessibleModalShell({
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open && !keepMounted) return null;
 
-  const resolvedOverlayStyle = normalizeModalOverlayStyle(overlayStyle);
+  const resolvedOverlayStyle = {
+    ...normalizeModalOverlayStyle(overlayStyle),
+    ...(!open
+      ? {
+          opacity: 0,
+          pointerEvents: 'none',
+          transform: 'translateX(-200vw)',
+        }
+      : null),
+  };
 
-  return (
-    <div className={overlayClassName} style={resolvedOverlayStyle} onClick={onClose}>
+  const modal = (
+    <div
+      className={overlayClassName}
+      style={resolvedOverlayStyle}
+      onClick={open ? onClose : undefined}
+      aria-hidden={!open}
+    >
       <div
         ref={panelRef}
         role="dialog"
-        aria-modal="true"
+        aria-modal={open ? 'true' : undefined}
         aria-labelledby={resolvedTitleId}
         aria-describedby={describedBy}
         className={panelClassName}
@@ -126,4 +143,6 @@ export default function AccessibleModalShell({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

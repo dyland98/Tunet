@@ -1,29 +1,45 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 const CODECS = [
   'avc1.640029',
   'avc1.64002A',
   'avc1.640033',
   'hvc1.1.6.L153.B0',
-  'mp4a.40.2',
-  'mp4a.40.5',
-  'flac',
-  'opus',
 ];
-
-const PC_CONFIG = {
-  bundlePolicy: 'max-bundle',
-  iceServers: [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }],
-  sdpSemantics: 'unified-plan',
-};
 
 function supportedCodecs(isSupported) {
   return CODECS.filter((codec) => isSupported(`video/mp4; codecs="${codec}"`)).join();
 }
 
-export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true, onError }) {
+function getFrameUrl(url) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const src = parsed.searchParams.get('src');
+    if (!src) return null;
+    parsed.protocol = parsed.protocol === 'wss:' ? 'https:' : 'http:';
+    parsed.pathname = '/api/frame.jpeg';
+    parsed.search = '';
+    parsed.searchParams.set('src', src);
+    parsed.searchParams.set('_ts', String(Date.now()));
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+export default function Go2RtcWebRtcPlayer({
+  url,
+  className,
+  title,
+  muted = true,
+  onError,
+  debugLabel,
+}) {
   const videoRef = useRef(null);
+  const posterUrl = useMemo(() => getFrameUrl(url), [url]);
   const onErrorRef = useRef(onError);
+  const objectClass = className?.includes('object-cover') ? 'object-cover' : 'object-contain';
 
   useEffect(() => {
     onErrorRef.current = onError;
@@ -33,23 +49,26 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
     if (!url || !videoRef.current) return undefined;
 
     let closed = false;
-    let mseCodecs = '';
     let binaryFrames = 0;
     let socket = null;
-    let peer = null;
     let mediaSource = null;
     let objectUrl = null;
     let sourceBuffer = null;
     const pendingBuffers = [];
     const video = videoRef.current;
+    const startTime = performance.now();
+    const elapsed = () => `${Math.round(performance.now() - startTime)}ms`;
     const debug = (...args) => {
-      if (globalThis.localStorage?.getItem('tunetCameraDebug') === '1') {
-        console.debug('[Tunet go2rtc]', ...args);
-      }
+      if (!debugLabel) return;
+      console.debug('[Tunet camera warm]', elapsed(), debugLabel, ...args);
     };
     const fail = () => onErrorRef.current?.();
 
     debug('connecting', url);
+
+    const logVideoEvent = (event) => debug('video', event.type);
+    const videoEvents = ['loadeddata', 'playing', 'error'];
+    videoEvents.forEach((eventName) => video.addEventListener(eventName, logVideoEvent));
 
     const play = () => {
       video.play?.().catch(() => {
@@ -63,13 +82,19 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
     const cleanup = () => {
       closed = true;
       if (socket) {
-        socket.close();
+        if (socket.readyState === WebSocket.CONNECTING) {
+          const openingSocket = socket;
+          openingSocket.addEventListener(
+            'open',
+            () => {
+              openingSocket.close();
+            },
+            { once: true }
+          );
+        } else {
+          socket.close();
+        }
         socket = null;
-      }
-      if (peer) {
-        peer.getSenders().forEach((sender) => sender.track?.stop());
-        peer.close();
-        peer = null;
       }
       if (sourceBuffer) {
         try {
@@ -95,6 +120,7 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
       if (video.srcObject instanceof MediaStream) {
         video.srcObject.getTracks().forEach((track) => track.stop());
       }
+      videoEvents.forEach((eventName) => video.removeEventListener(eventName, logVideoEvent));
       video.srcObject = null;
       video.removeAttribute('src');
       video.load?.();
@@ -123,7 +149,6 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
         },
         { once: true }
       );
-
       if (globalThis.ManagedMediaSource && mediaSource instanceof globalThis.ManagedMediaSource) {
         video.disableRemotePlayback = true;
         video.srcObject = mediaSource;
@@ -137,26 +162,57 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
 
     const handleMseMessage = (message) => {
       if (message.type !== 'mse' || !mediaSource || sourceBuffer) return;
-      mseCodecs = message.value || '';
-      debug('MSE response', mseCodecs || 'no codec returned');
+      debug('MSE response', message.value || 'no codec returned');
       if (!message.value) return;
       sourceBuffer = mediaSource.addSourceBuffer(message.value);
       sourceBuffer.mode = 'segments';
       sourceBuffer.addEventListener('updateend', () => {
-        if (sourceBuffer?.updating || pendingBuffers.length === 0) return;
+        if (!sourceBuffer || sourceBuffer.updating) return;
+
+        if (pendingBuffers.length > 0) {
+          try {
+            sourceBuffer.appendBuffer(pendingBuffers.shift());
+            return;
+          } catch {
+            // Keep the stream alive if one segment append fails.
+          }
+        }
+
         try {
-          sourceBuffer.appendBuffer(pendingBuffers.shift());
+          trimToLiveEdge();
         } catch {
-          // Keep WebRTC/MJPEG fallback paths alive if MSE chokes.
+          // no-op
         }
       });
+    };
+
+    const trimToLiveEdge = () => {
+      if (!sourceBuffer?.buffered?.length || sourceBuffer.updating) return;
+      const end = sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1);
+      const liveStart = Math.max(0, end - 3);
+      const bufferedStart = sourceBuffer.buffered.start(0);
+
+      if (!Number.isFinite(video.currentTime) || video.currentTime < liveStart) {
+        video.currentTime = liveStart;
+      }
+
+      const liveLag = end - video.currentTime;
+      video.playbackRate = liveLag > 1 ? 1.25 : 1;
+      mediaSource?.setLiveSeekableRange?.(liveStart, end);
+      play();
+
+      if (liveStart > bufferedStart + 1 && !sourceBuffer.updating) {
+        sourceBuffer.remove(bufferedStart, liveStart);
+      }
     };
 
     const handleMseData = (data) => {
       if (!sourceBuffer) return;
       binaryFrames += 1;
-      if (binaryFrames === 1 || binaryFrames % 60 === 0) {
-        debug('MSE binary frames', binaryFrames);
+      if (binaryFrames === 1) {
+        debug('first segment', {
+          byteLength: data?.byteLength,
+        });
       }
       if (sourceBuffer.updating || pendingBuffers.length > 0) {
         pendingBuffers.push(data);
@@ -164,57 +220,11 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
       }
       try {
         sourceBuffer.appendBuffer(data);
+        play();
+        trimToLiveEdge();
       } catch {
         // no-op
       }
-    };
-
-    const setupWebRtc = async () => {
-      if (!('RTCPeerConnection' in window)) {
-        debug('WebRTC unavailable');
-        return;
-      }
-
-      peer = new RTCPeerConnection(PC_CONFIG);
-      peer.addEventListener('icecandidate', (event) => {
-        send({
-          type: 'webrtc/candidate',
-          value: event.candidate ? event.candidate.toJSON().candidate : '',
-        });
-      });
-
-      peer.addEventListener('connectionstatechange', () => {
-        if (!peer || closed) return;
-        debug('WebRTC state', peer.connectionState);
-        if (peer.connectionState === 'connected') {
-          const tracks = peer
-            .getTransceivers()
-            .filter((transceiver) => transceiver.currentDirection === 'recvonly')
-            .map((transceiver) => transceiver.receiver.track);
-          const rtcStream = new MediaStream(tracks);
-
-          const rtcPriority =
-            (rtcStream.getVideoTracks().length ? (peer.remoteDescription?.sdp.includes('H265/90000') ? 0x240 : 0x220) : 0) +
-            (rtcStream.getAudioTracks().length ? 0x102 : 0);
-          const msePriority =
-            (mseCodecs.includes('hvc1.') ? 0x230 : 0) +
-            (mseCodecs.includes('avc1.') ? 0x210 : 0) +
-            (mseCodecs.includes('mp4a.') ? 0x101 : 0);
-
-          if (rtcPriority >= msePriority) {
-            video.srcObject = rtcStream;
-            play();
-            debug('WebRTC playing');
-          }
-        }
-      });
-
-      peer.addTransceiver('video', { direction: 'recvonly' });
-      peer.addTransceiver('audio', { direction: 'recvonly' });
-      const offer = await peer.createOffer();
-      await peer.setLocalDescription(offer);
-      debug('WebRTC offer sent');
-      send({ type: 'webrtc/offer', value: offer.sdp });
     };
 
     socket = new WebSocket(url);
@@ -222,12 +232,13 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
     socket.addEventListener('open', () => {
       debug('WebSocket open');
       setupMse();
-      setupWebRtc().catch((error) => {
-        console.error('Failed to start go2rtc WebRTC stream:', error);
-      });
     });
     socket.addEventListener('close', (event) => {
-      debug('WebSocket close', { code: event.code, reason: event.reason, wasClean: event.wasClean });
+      debug('WebSocket close', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+      });
     });
     socket.addEventListener('message', async (event) => {
       if (closed) return;
@@ -240,12 +251,7 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
         const message = JSON.parse(event.data);
         debug('message', message.type, message.value ? String(message.value).slice(0, 120) : '');
         handleMseMessage(message);
-        if (message.type === 'webrtc/answer') {
-          debug('WebRTC answer received');
-          await peer?.setRemoteDescription({ type: 'answer', sdp: message.value });
-        } else if (message.type === 'webrtc/candidate' && message.value) {
-          await peer?.addIceCandidate({ candidate: message.value, sdpMid: '0' });
-        } else if (message.type === 'error') {
+        if (message.type === 'error') {
           console.warn('go2rtc stream error:', message.value);
         }
       } catch (error) {
@@ -262,13 +268,24 @@ export default function Go2RtcWebRtcPlayer({ url, className, title, muted = true
   }, [url]);
 
   return (
-    <video
-      ref={videoRef}
-      title={title}
-      className={className}
-      autoPlay
-      muted={muted}
-      playsInline
-    />
+    <div className={`relative overflow-hidden bg-black ${className || 'h-full w-full'}`}>
+      {posterUrl && (
+        <img
+          src={posterUrl}
+          alt=""
+          aria-hidden="true"
+          className={`absolute inset-0 h-full w-full ${objectClass}`}
+          referrerPolicy="no-referrer"
+        />
+      )}
+      <video
+        ref={videoRef}
+        title={title}
+        className={`absolute inset-0 h-full w-full ${objectClass}`}
+        autoPlay
+        muted={muted}
+        playsInline
+      />
+    </div>
   );
 }

@@ -193,6 +193,8 @@
   "camera.gate": "Port",
   "camera.gateAlt": "Portkamera",
   "camera.intervalSeconds": "Oppdater kvart (sekund)",
+  "camera.keepOverlayStreamsAlive": "Hald overlay-straumar varme",
+  "camera.keepOverlayStreamsAliveHint": "Startar overlay-straumane frå dashboardet slik at overlayet opnar raskare. Brukar meir CPU/nettverk.",
   "camera.live": "Direkte",
   "camera.motion": "Rørsle",
   "camera.motionSensor": "Rørslesensor",

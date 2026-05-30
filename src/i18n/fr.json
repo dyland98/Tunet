@@ -196,6 +196,8 @@
   "camera.gate": "Portail",
   "camera.gateAlt": "Caméra portail",
   "camera.intervalSeconds": "Actualiser toutes les (secondes)",
+  "camera.keepOverlayStreamsAlive": "Garder les flux overlay actifs",
+  "camera.keepOverlayStreamsAliveHint": "Démarre les flux de l'overlay depuis le dashboard pour ouvrir plus vite. Utilise plus de CPU/réseau.",
   "camera.live": "Vue en direct",
   "camera.motion": "Mouvement",
   "camera.motionSensor": "Capteur de mouvement",

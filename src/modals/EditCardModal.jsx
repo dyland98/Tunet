@@ -1906,6 +1906,8 @@ export default function EditCardModal({
                   const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
                   const previewUrl = editSettings.cameraPreviewUrl || '';
                   const overlayPrimaryUrl = editSettings.cameraOverlayUrl || '';
+                  const keepOverlayStreamsAlive =
+                    editSettings.cameraKeepOverlayStreamsAlive === true;
                   const extraCameraUrls = Array.isArray(editSettings.cameraExtraUrls)
                     ? editSettings.cameraExtraUrls
                     : [];
@@ -2079,6 +2081,34 @@ export default function EditCardModal({
                           {t('camera.overlayCamerasHint') ||
                             'Shown only in the camera overlay. Leave the first field empty to use the main camera URL.'}
                         </p>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            saveCardSetting(
+                              editSettingsKey,
+                              'cameraKeepOverlayStreamsAlive',
+                              !keepOverlayStreamsAlive
+                            )
+                          }
+                          className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${keepOverlayStreamsAlive ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                          style={
+                            keepOverlayStreamsAlive
+                              ? {
+                                  backgroundColor: 'var(--glass-bg-hover)',
+                                  borderColor: 'var(--glass-border)',
+                                }
+                              : undefined
+                          }
+                        >
+                          <span className="block text-xs font-bold tracking-widest uppercase">
+                            {t('camera.keepOverlayStreamsAlive') ||
+                              'Keep overlay streams warm'}
+                          </span>
+                          <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+                            {t('camera.keepOverlayStreamsAliveHint') ||
+                              'Starts the overlay streams from the dashboard so opening the overlay is faster. Uses more CPU/network.'}
+                          </span>
+                        </button>
                       </div>
 
                       {/* Refresh mode */}
