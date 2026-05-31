@@ -204,6 +204,7 @@
   "camera.overlayCamera3": "Kamera 3 - nedst til høgre",
   "camera.overlayCameras": "Overlay-kamera",
   "camera.overlayCamerasHint": "Visast berre i kamera-overlayet. Lat første felt stå tomt for å bruke hovud-URL-en.",
+  "camera.overlayEntity": "Home Assistant-entitet",
   "camera.previewUrl": "Dashboard-førehandsvising",
   "camera.previewUrlHint": "Bruk ein straum med lågare kvalitet her for å redusere ressursbruk i dashboardet.",
   "camera.refresh": "Oppdater",

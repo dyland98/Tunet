@@ -253,6 +253,7 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
             onClose={() => setShowWarmOverlay(false)}
             entityId={entityId}
             entity={entity}
+            entities={entities}
             customName={customNames?.[cardId]}
             customIcon={customIcons?.[cardId]}
             getEntityImageUrl={getEntityImageUrl}
@@ -321,6 +322,7 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
           onClose={() => setShowWarmOverlay(false)}
           entityId={entityId}
           entity={entity}
+          entities={entities}
           customName={customNames?.[cardId]}
           customIcon={customIcons?.[cardId]}
           getEntityImageUrl={getEntityImageUrl}

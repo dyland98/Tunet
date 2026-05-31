@@ -1333,6 +1333,7 @@ export default function EditCardModal({
       ),
     [entityEntries, sortByName]
   );
+  const cameraEntityOptions = byDomain('camera');
 
   if (!isOpen) return null;
 
@@ -1906,10 +1907,14 @@ export default function EditCardModal({
                   const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
                   const previewUrl = editSettings.cameraPreviewUrl || '';
                   const overlayPrimaryUrl = editSettings.cameraOverlayUrl || '';
+                  const overlayPrimaryEntityId = editSettings.cameraOverlayEntityId || '';
                   const keepOverlayStreamsAlive =
                     editSettings.cameraKeepOverlayStreamsAlive === true;
                   const extraCameraUrls = Array.isArray(editSettings.cameraExtraUrls)
                     ? editSettings.cameraExtraUrls
+                    : [];
+                  const extraCameraEntityIds = Array.isArray(editSettings.cameraExtraEntityIds)
+                    ? editSettings.cameraExtraEntityIds
                     : [];
                   const updateExtraCameraUrl = (index, value) => {
                     const nextUrls = [...extraCameraUrls];
@@ -1921,6 +1926,17 @@ export default function EditCardModal({
                       nextUrls.pop();
                     }
                     saveCardSetting(editSettingsKey, 'cameraExtraUrls', nextUrls);
+                  };
+                  const updateExtraCameraEntityId = (index, value) => {
+                    const nextEntityIds = [...extraCameraEntityIds];
+                    nextEntityIds[index] = value || '';
+                    while (
+                      nextEntityIds.length > 0 &&
+                      !String(nextEntityIds[nextEntityIds.length - 1] || '').trim()
+                    ) {
+                      nextEntityIds.pop();
+                    }
+                    saveCardSetting(editSettingsKey, 'cameraExtraEntityIds', nextEntityIds);
                   };
                   const recommendedWebrtc = '/api/webrtc?src={entity_object_id}';
                   const refreshMode = editSettings.cameraRefreshMode || 'interval';
@@ -2041,6 +2057,17 @@ export default function EditCardModal({
                           <p className="px-1 text-[11px] font-bold text-[var(--text-secondary)]">
                             {t('camera.overlayCamera1') || 'Camera 1 - large'}
                           </p>
+                          <SearchableSelect
+                            label={t('camera.overlayEntity') || 'Home Assistant entity'}
+                            value={overlayPrimaryEntityId}
+                            options={cameraEntityOptions}
+                            onChange={(value) =>
+                              saveCardSetting(editSettingsKey, 'cameraOverlayEntityId', value || '')
+                            }
+                            placeholder={t('dropdown.noneSelected') || 'None selected'}
+                            entities={entities}
+                            t={t}
+                          />
                           <input
                             type="text"
                             value={overlayPrimaryUrl}
@@ -2063,6 +2090,15 @@ export default function EditCardModal({
                                 ? t('camera.overlayCamera2') || 'Camera 2 - top right'
                                 : t('camera.overlayCamera3') || 'Camera 3 - bottom right'}
                             </p>
+                            <SearchableSelect
+                              label={t('camera.overlayEntity') || 'Home Assistant entity'}
+                              value={extraCameraEntityIds[index] || ''}
+                              options={cameraEntityOptions}
+                              onChange={(value) => updateExtraCameraEntityId(index, value)}
+                              placeholder={t('dropdown.noneSelected') || 'None selected'}
+                              entities={entities}
+                              t={t}
+                            />
                             <input
                               type="text"
                               value={extraCameraUrls[index] || ''}

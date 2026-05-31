@@ -59,6 +59,7 @@ export default function CameraModal({
   onClose,
   entityId,
   entity,
+  entities,
   customName,
   customIcon,
   getEntityImageUrl,
@@ -98,7 +99,15 @@ export default function CameraModal({
   const snapshotUrl = getEntityImageUrl(appendTs(snapshotBase, refreshTs));
   const streamEngine = normalizeStreamEngine(settings?.cameraStreamEngine);
   const overlayPrimaryTemplate = String(settings?.cameraOverlayUrl || '').trim();
-  const primaryStreamTemplate = overlayPrimaryTemplate || directUrl;
+  const overlayPrimaryEntityId = String(settings?.cameraOverlayEntityId || '').trim();
+  const overlayPrimaryEntity = overlayPrimaryEntityId ? entities?.[overlayPrimaryEntityId] : null;
+  const overlayPrimaryAccessToken = overlayPrimaryEntity?.attributes?.access_token || '';
+  const overlayPrimaryEntityUrl = overlayPrimaryEntityId
+    ? getEntityImageUrl(
+        buildCameraUrl('/api/camera_proxy_stream', overlayPrimaryEntityId, overlayPrimaryAccessToken)
+      )
+    : '';
+  const primaryStreamTemplate = overlayPrimaryTemplate || overlayPrimaryEntityUrl || directUrl;
   const webrtcTemplate = primaryStreamTemplate;
   const webrtcUrl = useMemo(() => {
     const resolved = resolveCameraTemplate(webrtcTemplate, activeEntityId);
@@ -107,21 +116,39 @@ export default function CameraModal({
   const go2rtcWebRtcUrl = useMemo(() => getGo2rtcWebRtcUrl(webrtcUrl), [webrtcUrl]);
   const extraCameraSources = useMemo(() => {
     const urls = Array.isArray(settings?.cameraExtraUrls) ? settings.cameraExtraUrls : [];
-    return urls
-      .slice(0, 2)
-      .map((urlTemplate, index) => {
-        const resolved = resolveCameraTemplate(String(urlTemplate || '').trim(), activeEntityId);
-        if (!resolved) return null;
-        const displayUrl = getEntityImageUrl(resolved);
+    const entityIds = Array.isArray(settings?.cameraExtraEntityIds)
+      ? settings.cameraExtraEntityIds
+      : [];
+    return [0, 1]
+      .map((index) => {
+        const urlTemplate = String(urls[index] || '').trim();
+        const entityIdForSlot = String(entityIds[index] || '').trim();
+        const entityForSlot = entityIdForSlot ? entities?.[entityIdForSlot] : null;
+        const entityAccessToken = entityForSlot?.attributes?.access_token || '';
+        const entityUrl = entityIdForSlot
+          ? getEntityImageUrl(
+              buildCameraUrl('/api/camera_proxy_stream', entityIdForSlot, entityAccessToken)
+            )
+          : '';
+        const resolved = resolveCameraTemplate(urlTemplate, activeEntityId);
+        const displayUrl = resolved ? getEntityImageUrl(resolved) : entityUrl;
+        if (!displayUrl) return null;
         return {
           id: `extra-${index}`,
-          title: `${name} ${index + 2}`,
+          title: entityForSlot?.attributes?.friendly_name || `${name} ${index + 2}`,
           displayUrl,
           go2rtcUrl: getGo2rtcWebRtcUrl(displayUrl),
         };
       })
       .filter(Boolean);
-  }, [settings?.cameraExtraUrls, activeEntityId, getEntityImageUrl, name]);
+  }, [
+    settings?.cameraExtraUrls,
+    settings?.cameraExtraEntityIds,
+    activeEntityId,
+    entities,
+    getEntityImageUrl,
+    name,
+  ]);
 
   const preferredSource = useMemo(() => {
     if (streamEngine === 'snapshot') return 'snapshot';

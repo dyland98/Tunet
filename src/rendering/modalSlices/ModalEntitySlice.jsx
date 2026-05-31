@@ -482,6 +482,7 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 onClose={() => setShowCameraModal(null)}
                 entityId={cameraEntityId}
                 entity={cameraEntity}
+                entities={entities}
                 customName={customNames?.[showCameraModal]}
                 customIcon={customIcons?.[showCameraModal]}
                 getEntityImageUrl={getEntityImageUrl}

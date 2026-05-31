@@ -207,6 +207,7 @@
   "camera.overlayCamera3": "Caméra 3 - bas droite",
   "camera.overlayCameras": "Caméras dans l'overlay",
   "camera.overlayCamerasHint": "Affichées uniquement dans l'overlay caméra. Laissez le premier champ vide pour utiliser l'URL principale.",
+  "camera.overlayEntity": "Entité Home Assistant",
   "camera.previewUrl": "URL de prévisualisation dashboard",
   "camera.previewUrlHint": "Utilisez ici un flux basse qualité pour réduire les ressources du dashboard.",
   "camera.refresh": "Actualiser",
