@@ -24,6 +24,18 @@ export default function BackgroundLayer() {
     return <SilkBackground />;
   }
 
+  if (isWallPanelMode) {
+    return (
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          background:
+            'radial-gradient(circle at 50% 0%, var(--bg-gradient-from), var(--bg-primary) 72%, var(--bg-gradient-to))',
+        }}
+      />
+    );
+  }
+
   const ambientFilter = isWallPanelMode ? 'none' : 'blur(80px)';
   const ambientFilterLarge = isWallPanelMode ? 'none' : 'blur(90px)';
 

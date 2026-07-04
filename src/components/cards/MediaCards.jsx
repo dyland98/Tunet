@@ -88,6 +88,10 @@ export const MediaPlayerCard = memo(/** @param {any} props */ ({
   const isCoverMode = artworkMode === 'cover';
   const playingBackgroundMotion = settings.playingBackgroundMotion || 'off';
   const useSubtlePlayingMotion = isPlaying && playingBackgroundMotion === 'subtle';
+  const isWallPanelMode =
+    typeof document !== 'undefined' &&
+    document.documentElement.dataset.performanceMode === 'wallpanel';
+  const showBackgroundArtwork = picture && !isWallPanelMode;
 
   if (!isActive) {
     return (
@@ -152,9 +156,9 @@ export const MediaPlayerCard = memo(/** @param {any} props */ ({
       style={{
         ...cardStyle,
         color:
-          picture && isCoverMode
+          showBackgroundArtwork && isCoverMode
             ? 'white'
-            : picture && !isCoverMode
+            : showBackgroundArtwork && !isCoverMode
               ? 'white'
               : 'var(--text-primary)',
       }}
@@ -162,7 +166,7 @@ export const MediaPlayerCard = memo(/** @param {any} props */ ({
       {controls}
 
       {/* Background artwork */}
-      {picture && (
+      {showBackgroundArtwork && (
         <div
           className={`pointer-events-none absolute inset-0 z-0 transition-all duration-500 ${isCoverMode ? 'opacity-100' : 'opacity-20'} ${useSubtlePlayingMotion ? 'media-bg-subtle-pulse' : ''}`}
         >
@@ -318,6 +322,9 @@ export const MediaGroupCard = memo(/** @param {any} props */ ({
   const isCoverMode = artworkMode === 'cover';
   const playingBackgroundMotion = groupSettings.playingBackgroundMotion || 'off';
   const useSubtlePlayingMotion = isPlaying && playingBackgroundMotion === 'subtle';
+  const isWallPanelMode =
+    typeof document !== 'undefined' &&
+    document.documentElement.dataset.performanceMode === 'wallpanel';
 
   const name = customNames[cardId] || getA(mpId, 'friendly_name', 'Musikk');
   const title = getA(mpId, 'media_title') || (isActive ? t('status.active') : t('media.noneMusic'));
@@ -327,6 +334,7 @@ export const MediaGroupCard = memo(/** @param {any} props */ ({
     getA(mpId, 'media_album_name') ||
     '';
   const picture = getEntityImageUrl(currentMp.attributes?.entity_picture);
+  const showBackgroundArtwork = picture && !isWallPanelMode;
   const isChannel = getA(mpId, 'media_content_type') === 'channel';
   const mediaIconName = customIcons?.[cardId] || customIcons?.[mpId] || null;
   const MediaIcon = mediaIconName
@@ -424,15 +432,15 @@ export const MediaGroupCard = memo(/** @param {any} props */ ({
           <ArrowLeftRight className="ml-0.5 h-3 w-3" />
         </button>
       )}
-      {isPlaying && (
+      {isPlaying && !isWallPanelMode && (
         <div className="pointer-events-none absolute inset-0 z-0 animate-pulse bg-gradient-to-t from-[var(--glass-bg-hover)] via-transparent to-transparent opacity-50" />
       )}
-      {isPlaying && (
+      {isPlaying && !isWallPanelMode && (
         <div className="pointer-events-none absolute inset-0 z-0 animate-pulse bg-gradient-to-t from-black/25 via-transparent to-transparent" />
       )}
 
       {/* Background artwork */}
-      {picture && (
+      {showBackgroundArtwork && (
         <>
           {/* Default artwork (blurred background) */}
           {!isCoverMode && (

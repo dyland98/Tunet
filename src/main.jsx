@@ -26,6 +26,67 @@ function reloadForChunkErrorOnce() {
   globalThis.window.history.go(0);
 }
 
+function limitAnimationFrameRate(targetFps) {
+  if (globalThis.window === undefined) return;
+  const nativeRequestAnimationFrame = globalThis.window.requestAnimationFrame?.bind(globalThis.window);
+  const nativeCancelAnimationFrame = globalThis.window.cancelAnimationFrame?.bind(globalThis.window);
+  if (!nativeRequestAnimationFrame || !nativeCancelAnimationFrame) return;
+
+  const minFrameMs = 1000 / targetFps;
+  let lastFrameAt = 0;
+  let nextHandle = 1;
+  let scheduledRafId = null;
+  let scheduledTimeoutId = null;
+  const callbacks = new Map();
+
+  const clearScheduledFrame = () => {
+    if (scheduledRafId != null) nativeCancelAnimationFrame(scheduledRafId);
+    if (scheduledTimeoutId != null) globalThis.window.clearTimeout(scheduledTimeoutId);
+    scheduledRafId = null;
+    scheduledTimeoutId = null;
+  };
+
+  const flushCallbacks = (timestamp) => {
+    scheduledRafId = null;
+    scheduledTimeoutId = null;
+
+    const waitMs = minFrameMs - (timestamp - lastFrameAt);
+    if (waitMs > 0) {
+      scheduledTimeoutId = globalThis.window.setTimeout(() => {
+        scheduledTimeoutId = null;
+        scheduledRafId = nativeRequestAnimationFrame(flushCallbacks);
+      }, waitMs);
+      return;
+    }
+
+    lastFrameAt = timestamp;
+    const pending = Array.from(callbacks.entries());
+    callbacks.clear();
+    pending.forEach(([, callback]) => callback(timestamp));
+
+    if (callbacks.size > 0) {
+      scheduledRafId = nativeRequestAnimationFrame(flushCallbacks);
+    }
+  };
+
+  const scheduleFrame = () => {
+    if (scheduledRafId != null || scheduledTimeoutId != null) return;
+    scheduledRafId = nativeRequestAnimationFrame(flushCallbacks);
+  };
+
+  globalThis.window.requestAnimationFrame = (callback) => {
+    const handle = nextHandle++;
+    callbacks.set(handle, callback);
+    scheduleFrame();
+    return handle;
+  };
+
+  globalThis.window.cancelAnimationFrame = (handle) => {
+    callbacks.delete(handle);
+    if (callbacks.size === 0) clearScheduledFrame();
+  };
+}
+
 if (globalThis.window !== undefined) {
   const params = new URLSearchParams(globalThis.window.location.search);
   const savedMode = globalThis.window.localStorage.getItem('tunet_wallpanel_mode');
@@ -37,6 +98,7 @@ if (globalThis.window !== undefined) {
 
   if (shouldUseWallPanelMode) {
     globalThis.document.documentElement.dataset.performanceMode = 'wallpanel';
+    limitAnimationFrameRate(30);
   }
 
   globalThis.window.addEventListener('unhandledrejection', (event) => {
