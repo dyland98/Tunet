@@ -98,7 +98,7 @@ const PersonStatus = ({
       <div className="relative">
         <div
           className="h-10 w-10 overflow-hidden rounded-full bg-gray-800 transition-all duration-500"
-          style={{ filter: isHome ? 'grayscale(0%)' : 'grayscale(100%) opacity(0.7)' }}
+          style={{ filter: isHome ? 'none' : 'grayscale(100%) opacity(0.7)' }}
         >
           {useIcon ? (
             <div className="flex h-full w-full items-center justify-center text-[var(--text-secondary)]">
