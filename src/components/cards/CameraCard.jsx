@@ -33,6 +33,12 @@ function normalizeStreamEngine(value) {
   return 'auto';
 }
 
+function isWallPanelPerformanceMode() {
+  return (
+    globalThis.document?.documentElement?.dataset?.performanceMode === 'wallpanel'
+  );
+}
+
 function getGo2rtcWebRtcUrl(url) {
   if (!url) return null;
   try {
@@ -77,7 +83,9 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   const attrs = entity?.attributes || {};
   const directUrl = String(settings?.cameraDirectUrl || settings?.cameraWebrtcUrl || '').trim();
   const previewDirectUrl = String(settings?.cameraPreviewUrl || '').trim();
-  const keepOverlayStreamsAlive = settings?.cameraKeepOverlayStreamsAlive === true;
+  const isWallPanelMode = isWallPanelPerformanceMode();
+  const keepOverlayStreamsAlive =
+    settings?.cameraKeepOverlayStreamsAlive === true && !isWallPanelMode;
   const isOffline =
     !directUrl &&
     (!entity ||
@@ -148,6 +156,7 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   ]);
 
   const preferredSource = useMemo(() => {
+    if (isWallPanelMode) return 'snapshot';
     if (streamEngine === 'snapshot') return 'snapshot';
     if (previewDirectUrl) {
       if (go2rtcWebRtcUrl) return 'go2rtc-webrtc';
@@ -162,7 +171,7 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
     if (go2rtcWebRtcUrl) return 'go2rtc-webrtc';
     if (webrtcUrl) return 'webrtc';
     return 'ha';
-  }, [streamEngine, previewDirectUrl, webrtcUrl, go2rtcWebRtcUrl]);
+  }, [isWallPanelMode, streamEngine, previewDirectUrl, webrtcUrl, go2rtcWebRtcUrl]);
 
   useEffect(() => {
     setStreamSource(preferredSource);
@@ -204,12 +213,26 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
     setStreamSource(preferredSource);
   }, [preferredSource]);
 
-  // Interval-based snapshot refresh (only used when stream has failed)
+  // WallPanel keeps dashboard camera tiles cheap; opening the modal still uses live streams.
   useEffect(() => {
-    if (isOffline || !usingSnapshotFallback || refreshMode !== 'interval') return;
-    intervalRef.current = setInterval(doRefresh, refreshInterval * 1000);
+    if (
+      isOffline ||
+      (!usingSnapshotFallback && !isWallPanelMode) ||
+      refreshMode !== 'interval'
+    ) {
+      return;
+    }
+    const effectiveInterval = isWallPanelMode ? Math.max(30, refreshInterval) : refreshInterval;
+    intervalRef.current = setInterval(doRefresh, effectiveInterval * 1000);
     return () => clearInterval(intervalRef.current);
-  }, [isOffline, usingSnapshotFallback, refreshMode, refreshInterval, doRefresh]);
+  }, [
+    isOffline,
+    usingSnapshotFallback,
+    isWallPanelMode,
+    refreshMode,
+    refreshInterval,
+    doRefresh,
+  ]);
 
   // Motion-sensor-based refresh
   useEffect(() => {
