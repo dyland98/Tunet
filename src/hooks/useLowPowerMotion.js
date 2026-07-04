@@ -7,6 +7,8 @@ const getMotionAllowed = () => {
   if (!hasBrowserMotionApis()) return false;
 
   const { window, document } = globalThis;
+  if (document.documentElement.dataset.performanceMode === 'wallpanel') return false;
+
   const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   const slowUpdate = window.matchMedia?.('(update: slow)')?.matches;
 

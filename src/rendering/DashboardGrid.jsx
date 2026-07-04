@@ -251,7 +251,7 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
             <div
               key={id}
               data-dashboard-card={id}
-              className={`relative ${isCompactCards || isMobile ? 'card-compact' : ''}`}
+              className={`dashboard-card-frame relative ${isCompactCards || isMobile ? 'card-compact' : ''}`}
               style={{
                 gridRowStart: placement.row,
                 gridColumnStart: placement.col,

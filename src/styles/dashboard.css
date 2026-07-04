@@ -578,6 +578,35 @@ html[data-performance-mode='wallpanel'] [style*='backdrop-filter'] {
   box-shadow: var(--wallpanel-card-shadow) !important;
 }
 
+html[data-performance-mode='wallpanel'] .dashboard-card-frame {
+  content-visibility: auto;
+  contain-intrinsic-size: 220px;
+}
+
+html[data-performance-mode='wallpanel'] .blur-xl,
+html[data-performance-mode='wallpanel'] .blur-2xl,
+html[data-performance-mode='wallpanel'] .blur-3xl,
+html[data-performance-mode='wallpanel'] .filter,
+html[data-performance-mode='wallpanel'] .drop-shadow,
+html[data-performance-mode='wallpanel'] .drop-shadow-md,
+html[data-performance-mode='wallpanel'] .drop-shadow-lg {
+  filter: none !important;
+}
+
+html[data-performance-mode='wallpanel'] .shadow-lg,
+html[data-performance-mode='wallpanel'] .shadow-xl,
+html[data-performance-mode='wallpanel'] .shadow-2xl {
+  box-shadow: var(--wallpanel-card-shadow) !important;
+}
+
+html[data-performance-mode='wallpanel'] .backdrop-blur-sm,
+html[data-performance-mode='wallpanel'] .backdrop-blur-md,
+html[data-performance-mode='wallpanel'] .backdrop-blur-xl,
+html[data-performance-mode='wallpanel'] .backdrop-blur-2xl {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 html[data-performance-mode='wallpanel'] .touch-feedback,
 html[data-performance-mode='wallpanel'] .touch-feedback:hover,
 html[data-performance-mode='wallpanel'] .touch-feedback:active,
@@ -592,6 +621,16 @@ html[data-performance-mode='wallpanel'] .edit-mode-card {
 html[data-performance-mode='wallpanel'] .touch-feedback:hover {
   z-index: auto;
   border-color: var(--glass-border) !important;
+}
+
+html[data-performance-mode='wallpanel'] .card-unavailable::before,
+html[data-performance-mode='wallpanel'] .media-bg-subtle-overlay,
+html[data-performance-mode='wallpanel'] .media-bg-subtle-drift,
+html[data-performance-mode='wallpanel'] .media-bg-subtle-pulse,
+html[data-performance-mode='wallpanel'] .aurora-blob-1,
+html[data-performance-mode='wallpanel'] .aurora-blob-2,
+html[data-performance-mode='wallpanel'] .aurora-blob-3 {
+  animation: none !important;
 }
 
 html[data-performance-mode='wallpanel'] .card-unavailable::before,

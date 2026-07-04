@@ -25,6 +25,14 @@ import { buildRegistryLookupMap, enrichEntitiesWithRegistryMetadata, isEntityDat
 
 const ENTITY_CACHE_KEY = 'tunet_entity_snapshot';
 const ENTITY_CACHE_MAX_AGE_MS = 5 * 60_000; // 5 minutes — stale snapshots are discarded
+const WALLPANEL_ENTITY_RENDER_INTERVAL_MS = 1000;
+
+function isWallPanelPerformanceMode() {
+  return (
+    typeof document !== 'undefined' &&
+    document.documentElement.dataset.performanceMode === 'wallpanel'
+  );
+}
 
 /** Read cached entity snapshot from sessionStorage (returns {} if absent/expired). */
 function loadCachedEntities() {
@@ -94,31 +102,58 @@ function useThrottledEntities() {
   const [entities, setEntities] = useState(loadCachedEntities);
   const pendingRef = useRef(null);
   const rafRef = useRef(null);
+  const timerRef = useRef(null);
+  const lastCommitRef = useRef(0);
   const saveTimerRef = useRef(null);
 
-  const setEntitiesThrottled = useCallback((updatedEntities) => {
-    pendingRef.current = updatedEntities;
-    if (rafRef.current == null) {
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        if (pendingRef.current) {
-          setEntities(pendingRef.current);
-          // Debounce sessionStorage writes to once per 10 s
-          if (saveTimerRef.current == null) {
-            saveTimerRef.current = setTimeout(() => {
-              saveTimerRef.current = null;
-              if (pendingRef.current) saveCachedEntities(pendingRef.current);
-            }, 10_000);
-          }
-        }
-      });
+  const commitPendingEntities = useCallback(() => {
+    timerRef.current = null;
+    rafRef.current = null;
+    if (!pendingRef.current) return;
+
+    lastCommitRef.current = Date.now();
+    setEntities(pendingRef.current);
+    // Debounce sessionStorage writes to once per 10 s
+    if (saveTimerRef.current == null) {
+      saveTimerRef.current = setTimeout(() => {
+        saveTimerRef.current = null;
+        if (pendingRef.current) saveCachedEntities(pendingRef.current);
+      }, 10_000);
     }
   }, []);
+
+  const setEntitiesThrottled = useCallback(
+    (updatedEntities) => {
+      pendingRef.current = updatedEntities;
+
+      if (isWallPanelPerformanceMode()) {
+        const elapsedMs = Date.now() - lastCommitRef.current;
+        if (elapsedMs >= WALLPANEL_ENTITY_RENDER_INTERVAL_MS) {
+          commitPendingEntities();
+          return;
+        }
+
+        if (timerRef.current == null) {
+          timerRef.current = setTimeout(
+            commitPendingEntities,
+            WALLPANEL_ENTITY_RENDER_INTERVAL_MS - elapsedMs
+          );
+        }
+        return;
+      }
+
+      if (rafRef.current == null) {
+        rafRef.current = requestAnimationFrame(commitPendingEntities);
+      }
+    },
+    [commitPendingEntities]
+  );
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      if (timerRef.current != null) clearTimeout(timerRef.current);
       if (saveTimerRef.current != null) clearTimeout(saveTimerRef.current);
     };
   }, []);
@@ -148,6 +183,26 @@ export const HomeAssistantProvider = ({ children, config }) => {
   const rawEntitiesRef = useRef(entities);
   const entityRegistryByIdRef = useRef(new Map());
   const deviceRegistryByIdRef = useRef(new Map());
+  const lastEntityUpdateTimerRef = useRef(null);
+  const pendingLastEntityUpdateAtRef = useRef(0);
+
+  const markEntityUpdate = useCallback(() => {
+    const now = Date.now();
+    if (!isWallPanelPerformanceMode()) {
+      setLastEntityUpdateAt(now);
+      setEntityDataStale(false);
+      return;
+    }
+
+    pendingLastEntityUpdateAtRef.current = now;
+    if (lastEntityUpdateTimerRef.current != null) return;
+
+    lastEntityUpdateTimerRef.current = setTimeout(() => {
+      lastEntityUpdateTimerRef.current = null;
+      setLastEntityUpdateAt(pendingLastEntityUpdateAtRef.current);
+      setEntityDataStale(false);
+    }, WALLPANEL_ENTITY_RENDER_INTERVAL_MS);
+  }, []);
 
   const applyRegistryMetadata = useCallback(
     (nextEntities) =>
@@ -171,6 +226,10 @@ export const HomeAssistantProvider = ({ children, config }) => {
     setOAuthAuthProvider(authRef);
     return () => {
       setOAuthAuthProvider(null);
+      if (lastEntityUpdateTimerRef.current != null) {
+        clearTimeout(lastEntityUpdateTimerRef.current);
+        lastEntityUpdateTimerRef.current = null;
+      }
     };
   }, [authRef]);
 
@@ -391,8 +450,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
         if (isCurrentAttempt()) {
           pushEntitySnapshot(updatedEntities);
           setEntitiesLoaded(true);
-          setLastEntityUpdateAt(Date.now());
-          setEntityDataStale(false);
+          markEntityUpdate();
         }
       });
       unsubscribeEntitiesRef.current = typeof unsub === 'function' ? unsub : null;
@@ -435,8 +493,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
         if (isCurrentAttempt()) {
           pushEntitySnapshot(updatedEntities);
           setEntitiesLoaded(true);
-          setLastEntityUpdateAt(Date.now());
-          setEntityDataStale(false);
+          markEntityUpdate();
         }
       });
       unsubscribeEntitiesRef.current = typeof unsub === 'function' ? unsub : null;
@@ -510,6 +567,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
     setEntities,
     applyRegistryMetadata,
     pushEntitySnapshot,
+    markEntityUpdate,
   ]);
 
   // Handle connection events
