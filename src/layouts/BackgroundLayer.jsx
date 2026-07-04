@@ -8,18 +8,24 @@ import { useConfig } from '../contexts';
  */
 export default function BackgroundLayer() {
   const { bgMode } = useConfig();
+  const isWallPanelMode =
+    typeof document !== 'undefined' &&
+    document.documentElement.dataset.performanceMode === 'wallpanel';
 
-  if (bgMode === 'animated') {
+  if (!isWallPanelMode && bgMode === 'animated') {
     return <AuroraBackground />;
   }
 
-  if (bgMode === 'lavaLamp') {
+  if (!isWallPanelMode && bgMode === 'lavaLamp') {
     return <LavaLampBackground />;
   }
 
-  if (bgMode === 'silk') {
+  if (!isWallPanelMode && bgMode === 'silk') {
     return <SilkBackground />;
   }
+
+  const ambientFilter = isWallPanelMode ? 'none' : 'blur(80px)';
+  const ambientFilterLarge = isWallPanelMode ? 'none' : 'blur(90px)';
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
@@ -38,7 +44,7 @@ export default function BackgroundLayer() {
         style={{
           background:
             'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 70%)',
-          filter: 'blur(80px)',
+          filter: ambientFilter,
         }}
       />
       <div
@@ -46,7 +52,7 @@ export default function BackgroundLayer() {
         style={{
           background:
             'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0) 70%)',
-          filter: 'blur(80px)',
+          filter: ambientFilter,
         }}
       />
       <div
@@ -54,7 +60,7 @@ export default function BackgroundLayer() {
         style={{
           background:
             'radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, rgba(14, 165, 233, 0) 70%)',
-          filter: 'blur(90px)',
+          filter: ambientFilterLarge,
         }}
       />
     </div>

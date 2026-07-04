@@ -27,6 +27,18 @@ function reloadForChunkErrorOnce() {
 }
 
 if (globalThis.window !== undefined) {
+  const params = new URLSearchParams(globalThis.window.location.search);
+  const savedMode = globalThis.window.localStorage.getItem('tunet_wallpanel_mode');
+  const userAgent = globalThis.navigator?.userAgent || '';
+  const isAndroidWebView =
+    /\bAndroid\b/i.test(userAgent) && (/\bwv\b/i.test(userAgent) || /\bVersion\/[\d.]+/i.test(userAgent));
+  const shouldUseWallPanelMode =
+    params.get('wallpanel') === '1' || savedMode === '1' || (savedMode !== '0' && isAndroidWebView);
+
+  if (shouldUseWallPanelMode) {
+    globalThis.document.documentElement.dataset.performanceMode = 'wallpanel';
+  }
+
   globalThis.window.addEventListener('unhandledrejection', (event) => {
     if (!isChunkLoadError(event?.reason)) return;
     reloadForChunkErrorOnce();
