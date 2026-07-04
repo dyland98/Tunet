@@ -195,6 +195,14 @@ function FlowPath({
   const pathOpacity = active ? 1 : 0.18;
   const strokeWidth = active ? 1.8 : 1.3;
   const orbRadius = 3.2;
+  const isWallPanelMode =
+    typeof document !== 'undefined' &&
+    document.documentElement.dataset.performanceMode === 'wallpanel';
+  const pathStyle = {
+    opacity: isWallPanelMode ? 1 : pathOpacity,
+    strokeWidth,
+    ...(isWallPanelMode && !active ? { stroke: 'rgba(148, 163, 184, 0.34)' } : {}),
+  };
 
   return (
     <>
@@ -203,9 +211,9 @@ function FlowPath({
         d={d}
         className={className}
         vectorEffect="non-scaling-stroke"
-        style={{ opacity: pathOpacity, strokeWidth }}
+        style={pathStyle}
       />
-      {active && showOrbs && (
+      {active && showOrbs && !isWallPanelMode && (
         <>
           {[0, 1].map((i) => (
             <circle
