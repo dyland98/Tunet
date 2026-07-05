@@ -160,6 +160,7 @@ const LightCard = ({
                 onChange={handleBrightnessChange}
                 colorClass="bg-amber-500"
                 ariaLabel={t('light.brightness')}
+                commitOnly
               />
             )}
           </div>
@@ -287,6 +288,7 @@ const LightCard = ({
               onChange={handleBrightnessChange}
               colorClass="bg-amber-500"
               ariaLabel={t('light.brightness')}
+              commitOnly
             />
           )}
         </div>
