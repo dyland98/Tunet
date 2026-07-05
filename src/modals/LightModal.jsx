@@ -13,104 +13,30 @@ import {
 import M3Slider from '../components/ui/M3Slider';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getIconComponent } from '../icons';
+import {
+  brightnessToPercent,
+  getAverageLightBrightness,
+  getEffectiveLightBrightness,
+  getLightBrightness,
+} from '../utils/lightBrightness';
 
 const LIGHT_SERVICE_DEBOUNCE_MS = 260;
 const LIGHT_TRANSITION_SETTLE_MS = 1800;
 
-const getEntityBrightnessValue = (entity, fallback = 0) => {
-  if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return fallback;
-  if (entity.state !== 'on') return 0;
-  return entity.attributes?.brightness ?? 255;
-};
-
 function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel, onCommit }) {
-  const [localValue, setLocalValue] = useState(value);
-  const isInteractingRef = useRef(false);
-  const pendingValueRef = useRef(value);
-  const committedValueRef = useRef(value);
-  const lockedCommitValueRef = useRef(null);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (!isInteractingRef.current) {
-      if (lockedCommitValueRef.current !== null) {
-        if (Math.abs(value - lockedCommitValueRef.current) <= 2) {
-          lockedCommitValueRef.current = null;
-        } else {
-          setLocalValue(lockedCommitValueRef.current);
-          return;
-        }
-      }
-      pendingValueRef.current = value;
-      committedValueRef.current = value;
-      setLocalValue(value);
-    }
-  }, [value]);
-
-  const commitValue = () => {
-    if (!isInteractingRef.current) return;
-    isInteractingRef.current = false;
-    const inputValue =
-      inputRef.current instanceof HTMLInputElement
-        ? parseInt(inputRef.current.value, 10)
-        : pendingValueRef.current;
-    pendingValueRef.current = inputValue;
-    committedValueRef.current = inputValue;
-    lockedCommitValueRef.current = inputValue;
-    setLocalValue(inputValue);
-    onCommit(entityId, inputValue);
-  };
-
-  const beginInteraction = (event) => {
-    lockedCommitValueRef.current = null;
-    isInteractingRef.current = true;
-    event.currentTarget?.setPointerCapture?.(event.pointerId);
-  };
-
-  const handleValueInput = (event) => {
-    const nextValue = parseInt(event.target.value, 10);
-    pendingValueRef.current = nextValue;
-    setLocalValue(nextValue);
-    if (!isInteractingRef.current) onCommit(entityId, nextValue);
-  };
-
   return (
-    <div className="relative h-8 w-full overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)]">
-      <div
-        className={`absolute top-0 left-0 h-full ${isInteractingRef.current ? 'transition-none' : 'transition-all duration-300'} ${isOn ? 'bg-amber-500 opacity-80' : 'bg-black/20 opacity-30'}`}
-        style={{ width: `${(localValue / 255) * 100}%` }}
-      />
-      <input
-        ref={inputRef}
-        type="range"
-        min="0"
-        max="255"
-        step="1"
-        value={localValue}
-        aria-label={ariaLabel}
-        disabled={disabled}
-        onPointerDown={beginInteraction}
-        onPointerUp={commitValue}
-        onPointerCancel={() => {
-          commitValue();
-        }}
-        onTouchStart={() => {
-          isInteractingRef.current = true;
-        }}
-        onTouchEnd={commitValue}
-        onMouseDown={() => {
-          isInteractingRef.current = true;
-        }}
-        onMouseUp={commitValue}
-        onInput={handleValueInput}
-        onChange={handleValueInput}
-        onBlur={() => {
-          if (isInteractingRef.current) commitValue();
-        }}
-        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-        style={{ touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
-      />
-    </div>
+    <M3Slider
+      min={0}
+      max={255}
+      step={1}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onCommit(entityId, parseInt(event.target.value, 10))}
+      ariaLabel={ariaLabel}
+      colorClass={isOn ? 'bg-amber-500' : 'bg-black/20'}
+      height="h-8"
+      commitOnly
+    />
   );
 }
 
@@ -172,15 +98,9 @@ export default function LightModal({
       : Math.round((minKelvin + maxKelvin) / 2));
   const remoteHue = entity?.attributes?.hs_color?.[0] ?? 0;
   const remoteGroupBrightness =
-    groupedEntityIds.length > 0
-      ? Math.round(
-          groupedEntityIds.reduce((sum, entityId) => {
-            return sum + getEntityBrightnessValue(entities[entityId]);
-          }, 0) / groupedEntityIds.length
-        )
-      : null;
+    groupedEntityIds.length > 0 ? getAverageLightBrightness(groupedEntityIds, entities) : null;
   const remoteBrightness =
-    remoteGroupBrightness ?? getEntityBrightnessValue(entity, getA(activeLightId, 'brightness') || 0);
+    remoteGroupBrightness ?? getLightBrightness(entity, getA(activeLightId, 'brightness') || 0);
 
   // --- Local State for Optimistic UI ---
   const [activeTab, setActiveTab] = useState('brightness');
@@ -188,11 +108,13 @@ export default function LightModal({
   const [localKelvin, setLocalKelvin] = useState(remoteKelvin);
   const [localHue, setLocalHue] = useState(remoteHue);
   const [localSubBrightness, setLocalSubBrightness] = useState({});
-  const isDraggingRef = useRef(false);
+  const isVisuallyOn = groupedEntityIds.length > 0 ? localBrightness > 0 : isOn;
   const serviceTimersRef = useRef(new Map());
   const subSettleTimersRef = useRef(new Map());
   const brightnessSettleTimerRef = useRef(null);
   const pendingBrightnessRef = useRef(null);
+  const pendingKelvinRef = useRef(null);
+  const pendingHueRef = useRef(null);
   const localSubBrightnessRef = useRef(localSubBrightness);
 
   const scheduleLightService = (entityId, payload, onCommit) => {
@@ -214,6 +136,8 @@ export default function LightModal({
       subSettleTimersRef.current.clear();
       if (brightnessSettleTimerRef.current) clearTimeout(brightnessSettleTimerRef.current);
       pendingBrightnessRef.current = null;
+      pendingKelvinRef.current = null;
+      pendingHueRef.current = null;
     };
   }, []);
 
@@ -229,7 +153,6 @@ export default function LightModal({
   useEffect(() => {
     if (
       show &&
-      !isDraggingRef.current &&
       !brightnessSettleTimerRef.current &&
       subSettleTimersRef.current.size === 0
     ) {
@@ -246,27 +169,44 @@ export default function LightModal({
   }, [activeLightId, remoteBrightness, show]);
 
   useEffect(() => {
-    if (!show || isDraggingRef.current) return;
+    if (!show) return;
     const nextValues = {};
     groupedEntityIds.forEach((entityId) => {
       const localValue = localSubBrightnessRef.current[entityId];
       nextValues[entityId] =
         subSettleTimersRef.current.has(entityId) && localValue !== undefined
           ? localValue
-          : getEntityBrightnessValue(entities[entityId]);
+          : getEffectiveLightBrightness(entityId, entities);
     });
     setLocalSubBrightness(nextValues);
   }, [entities, groupedEntityIdsKey, show]);
 
   // Sync remote -> local when NOT dragging
   useEffect(() => {
-    if (!isDraggingRef.current && remoteKelvin) {
+    if (remoteKelvin) {
+      const pending = pendingKelvinRef.current;
+      if (pending !== null) {
+        if (Math.abs(remoteKelvin - pending) <= 50) {
+          pendingKelvinRef.current = null;
+          setLocalKelvin(remoteKelvin);
+        }
+        return;
+      }
       setLocalKelvin(remoteKelvin);
     }
   }, [remoteKelvin]);
 
   useEffect(() => {
-    if (!isDraggingRef.current && remoteHue !== undefined) {
+    if (remoteHue !== undefined) {
+      const pending = pendingHueRef.current;
+      if (pending !== null) {
+        const diff = Math.abs(remoteHue - pending);
+        if (Math.min(diff, 360 - diff) <= 2) {
+          pendingHueRef.current = null;
+          setLocalHue(remoteHue);
+        }
+        return;
+      }
       setLocalHue(remoteHue);
     }
   }, [remoteHue]);
@@ -275,6 +215,7 @@ export default function LightModal({
   const handleTempChange = (e) => {
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
+    pendingKelvinRef.current = val;
     setLocalKelvin(val);
     scheduleLightService(activeLightId, { color_temp_kelvin: val });
   };
@@ -282,6 +223,7 @@ export default function LightModal({
   const handleHueChange = (e) => {
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
+    pendingHueRef.current = val;
     setLocalHue(val);
     scheduleLightService(activeLightId, { hs_color: [val, 100] });
   };
@@ -342,17 +284,11 @@ export default function LightModal({
     setLocalBrightness(parseInt(e.target.value, 10));
   };
 
-  const getSubBrightnessValue = (entityId, localValues = localSubBrightnessRef.current) =>
-    localValues[entityId] ?? getEntityBrightnessValue(entities[entityId]);
-
   const updateLocalGroupBrightness = (localValues = localSubBrightnessRef.current) => {
     if (groupedEntityIds.length === 0) return;
-    const nextAverage = Math.round(
-      groupedEntityIds.reduce((sum, entityId) => {
-        return sum + getSubBrightnessValue(entityId, localValues);
-      }, 0) / groupedEntityIds.length
-    );
-    setLocalBrightness(nextAverage);
+    const nextGroupBrightness = getAverageLightBrightness(groupedEntityIds, entities, localValues);
+    pendingBrightnessRef.current = nextGroupBrightness;
+    setLocalBrightness(nextGroupBrightness);
   };
 
   const keepSubBrightnessLocal = (entityId, value) => {
@@ -405,7 +341,7 @@ export default function LightModal({
 
   // Determine glow color
   const getGlowColor = () => {
-    if (!isOn) return 'transparent';
+    if (!isVisuallyOn) return 'transparent';
     if (activeTab === 'color' && supportsColor) {
       return `hsl(${localHue}, 100%, 50%)`;
     }
@@ -456,7 +392,7 @@ export default function LightModal({
           {/* Header */}
           <div className="relative z-10 mb-6 flex shrink-0 items-center gap-4">
             <div
-              className={`rounded-2xl p-4 transition-all duration-500 ${isUnavailable ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? 'bg-amber-500/15 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+              className={`rounded-2xl p-4 transition-all duration-500 ${isUnavailable ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isVisuallyOn ? 'bg-amber-500/15 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
             >
               <LightIcon className="h-8 w-8" />
             </div>
@@ -471,20 +407,18 @@ export default function LightModal({
                 className={`mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 ${isUnavailable ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
               >
                 <div
-                  className={`h-1.5 w-1.5 rounded-full ${isUnavailable ? 'bg-[var(--status-error-fg)]' : isOn ? 'bg-[var(--status-success-fg)] shadow-[0_0_6px_var(--status-success-fg)]' : 'bg-slate-600'}`}
+                  className={`h-1.5 w-1.5 rounded-full ${isUnavailable ? 'bg-[var(--status-error-fg)]' : isVisuallyOn ? 'bg-[var(--status-success-fg)] shadow-[0_0_6px_var(--status-success-fg)]' : 'bg-slate-600'}`}
                 />
                 <span className="text-[10px] font-bold tracking-widest uppercase italic">
                   {isUnavailable
                     ? t('status.unavailable')
-                    : isOn
+                    : isVisuallyOn
                       ? t('common.on')
                       : t('common.off')}
                 </span>
-                {isOn && (
+                {isVisuallyOn && (
                   <span className="border-l border-[var(--glass-border)] pl-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase italic">
-                    {Math.round(
-                      (localBrightness / 255) * 100
-                    )}
+                    {brightnessToPercent(localBrightness)}
                     %
                   </span>
                 )}
@@ -503,13 +437,13 @@ export default function LightModal({
               className={`relative flex h-24 w-24 items-center justify-center rounded-full transition-all duration-700 md:h-36 md:w-36 ${
                 isUnavailable
                   ? 'cursor-not-allowed bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'
-                  : isOn
+                  : isVisuallyOn
                     ? 'cursor-pointer bg-[var(--glass-bg)] text-[var(--text-primary)] shadow-2xl active:scale-95'
                     : 'cursor-pointer bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] active:scale-95'
               } border border-[var(--glass-border)]`}
               style={{
                 // Dimmed glow behind icon (lower opacity on hex color or lower radius)
-                boxShadow: isOn ? `0 0 60px -10px ${getGlowColor()}15` : 'none',
+                boxShadow: isVisuallyOn ? `0 0 60px -10px ${getGlowColor()}15` : 'none',
               }}
             >
               {isUnavailable ? (
@@ -519,7 +453,7 @@ export default function LightModal({
               )}
 
               {/* Subtle inner ring */}
-              {isOn && (
+              {isVisuallyOn && (
                 <div className="absolute inset-0 rounded-full border border-white/10 opacity-30" />
               )}
             </button>
@@ -574,9 +508,7 @@ export default function LightModal({
                           {t('light.brightness')}
                         </label>
                         <span className="font-mono text-lg font-medium text-[var(--text-primary)]">
-                          {Math.round(
-                            (localBrightness / 255) * 100
-                          )}
+                          {brightnessToPercent(localBrightness)}
                           %
                         </span>
                       </div>
@@ -609,37 +541,26 @@ export default function LightModal({
                           {localKelvin}K
                         </span>
                       </div>
-                      <div className="relative h-10 w-full touch-none overflow-hidden rounded-xl shadow-inner">
-                        <input
-                          type="range"
+                      <div className="h-10">
+                        <M3Slider
                           min={minKelvin}
                           max={maxKelvin}
                           step={50}
                           value={localKelvin}
-                          aria-label={t('light.colorTemperature')}
-                          aria-valuetext={`${localKelvin}K`}
                           disabled={isUnavailable}
-                          onPointerDown={() => (isDraggingRef.current = true)}
-                          onPointerUp={() => (isDraggingRef.current = false)}
-                          onPointerCancel={() => (isDraggingRef.current = false)}
                           onChange={handleTempChange}
-                          className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
-                        />
-                        {/* Gradient Background */}
-                        <div
-                          className="absolute inset-0"
-                          style={{
+                          onPreviewChange={(event) => setLocalKelvin(parseInt(event.target.value, 10))}
+                          ariaLabel={t('light.colorTemperature')}
+                          ariaValueText={`${localKelvin}K`}
+                          trackClass="h-full rounded-xl shadow-inner"
+                          trackStyle={{
                             background:
                               'linear-gradient(90deg, #ffb14e 0%, #fffbe6 50%, #9cb8ff 100%)',
                           }}
-                        />
-                        {/* Thumb Indicator */}
-                        <div
-                          className="pointer-events-none absolute top-0 bottom-0 w-1.5 border-x border-[var(--glass-border)] bg-black/40 backdrop-blur-sm transition-transform duration-75"
-                          style={{
-                            left: `${((localKelvin - minKelvin) / (maxKelvin - minKelvin)) * 100}%`,
-                            transform: 'translateX(-50%)', // Fixed transform
-                          }}
+                          thumbClass="top-0 bottom-0 w-1.5 border-x border-[var(--glass-border)] bg-black/40 shadow-sm backdrop-blur-sm"
+                          thumbOffset={3}
+                          showFill={false}
+                          commitOnly
                         />
                       </div>
                     </div>
@@ -658,36 +579,26 @@ export default function LightModal({
                           style={{ backgroundColor: `hsl(${localHue}, 100%, 50%)` }}
                         />
                       </div>
-                      <div className="relative h-10 w-full touch-none overflow-hidden rounded-xl shadow-inner">
-                        <input
-                          type="range"
+                      <div className="h-10">
+                        <M3Slider
                           min={0}
                           max={360}
                           step={1}
                           value={localHue}
-                          aria-label={t('light.hue')}
-                          aria-valuetext={`${localHue} degrees`}
                           disabled={isUnavailable}
-                          onPointerDown={() => (isDraggingRef.current = true)}
-                          onPointerUp={() => (isDraggingRef.current = false)}
-                          onPointerCancel={() => (isDraggingRef.current = false)}
                           onChange={handleHueChange}
-                          className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
-                        />
-                        <div
-                          className="absolute inset-0"
-                          style={{
+                          onPreviewChange={(event) => setLocalHue(parseInt(event.target.value, 10))}
+                          ariaLabel={t('light.hue')}
+                          ariaValueText={`${localHue} degrees`}
+                          trackClass="h-full rounded-xl shadow-inner"
+                          trackStyle={{
                             background:
                               'linear-gradient(90deg, #ef4444 0%, #f59e0b 16%, #facc15 32%, #22c55e 48%, #06b6d4 64%, #6366f1 80%, #d946ef 100%)',
                           }}
-                        />
-                        {/* Thumb Indicator */}
-                        <div
-                          className="pointer-events-none absolute top-0 bottom-0 w-1.5 bg-white/80 shadow-sm backdrop-blur-sm transition-transform duration-75"
-                          style={{
-                            left: `${(localHue / 360) * 100}%`,
-                            transform: 'translateX(-50%)', // Center the thin line
-                          }}
+                          thumbClass="top-0 bottom-0 w-1.5 bg-white/80 shadow-sm backdrop-blur-sm"
+                          thumbOffset={3}
+                          showFill={false}
+                          commitOnly
                         />
                       </div>
                     </div>
@@ -709,7 +620,7 @@ export default function LightModal({
                       const subIsOn = subEnt?.state === 'on';
                       const subUnavail = subEnt?.state === 'unavailable';
                       const subBrightness =
-                        localSubBrightness[cid] ?? getEntityBrightnessValue(subEnt);
+                        getEffectiveLightBrightness(cid, entities, localSubBrightness);
                       const subVisualIsOn = subBrightness > 0 || subIsOn;
 
                       return (
