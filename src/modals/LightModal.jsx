@@ -15,6 +15,71 @@ import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getIconComponent } from '../icons';
 
 const LIGHT_SERVICE_DEBOUNCE_MS = 260;
+const LIGHT_TRANSITION_SETTLE_MS = 1800;
+
+function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel, onCommit }) {
+  const [localValue, setLocalValue] = useState(value);
+  const isInteractingRef = useRef(false);
+  const pendingValueRef = useRef(value);
+
+  useEffect(() => {
+    if (!isInteractingRef.current) {
+      pendingValueRef.current = value;
+      setLocalValue(value);
+    }
+  }, [value]);
+
+  const commitValue = () => {
+    if (!isInteractingRef.current) return;
+    isInteractingRef.current = false;
+    onCommit(entityId, pendingValueRef.current);
+  };
+
+  return (
+    <div className="relative h-8 w-full overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)]">
+      <div
+        className={`absolute top-0 left-0 h-full ${isInteractingRef.current ? 'transition-none' : 'transition-all duration-300'} ${isOn ? 'bg-amber-500 opacity-80' : 'bg-black/20 opacity-30'}`}
+        style={{ width: `${(localValue / 255) * 100}%` }}
+      />
+      <input
+        type="range"
+        min="0"
+        max="255"
+        step="1"
+        value={localValue}
+        aria-label={ariaLabel}
+        disabled={disabled}
+        onPointerDown={() => {
+          isInteractingRef.current = true;
+        }}
+        onPointerUp={commitValue}
+        onPointerCancel={() => {
+          isInteractingRef.current = false;
+          pendingValueRef.current = value;
+          setLocalValue(value);
+        }}
+        onTouchStart={() => {
+          isInteractingRef.current = true;
+        }}
+        onTouchEnd={commitValue}
+        onMouseDown={() => {
+          isInteractingRef.current = true;
+        }}
+        onMouseUp={commitValue}
+        onChange={(event) => {
+          const nextValue = parseInt(event.target.value, 10);
+          pendingValueRef.current = nextValue;
+          setLocalValue(nextValue);
+          if (!isInteractingRef.current) onCommit(entityId, nextValue);
+        }}
+        onBlur={() => {
+          if (isInteractingRef.current) commitValue();
+        }}
+        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+      />
+    </div>
+  );
+}
 
 export default function LightModal({
   show,
@@ -87,6 +152,8 @@ export default function LightModal({
   const serviceTimersRef = useRef(new Map());
   const optimisticFrameRef = useRef(null);
   const pendingOptimisticRef = useRef({});
+  const subSettleTimersRef = useRef(new Map());
+  const localSubBrightnessRef = useRef(localSubBrightness);
 
   const publishOptimisticBrightness = (entityId, value) => {
     pendingOptimisticRef.current[entityId] = value;
@@ -116,8 +183,14 @@ export default function LightModal({
       serviceTimersRef.current.forEach((timer) => clearTimeout(timer));
       serviceTimersRef.current.clear();
       if (optimisticFrameRef.current) cancelAnimationFrame(optimisticFrameRef.current);
+      subSettleTimersRef.current.forEach((timer) => clearTimeout(timer));
+      subSettleTimersRef.current.clear();
     };
   }, []);
+
+  useEffect(() => {
+    localSubBrightnessRef.current = localSubBrightness;
+  }, [localSubBrightness]);
 
   // Reset tab on open
   useEffect(() => {
@@ -134,8 +207,11 @@ export default function LightModal({
     if (!show || isDraggingRef.current) return;
     const nextValues = {};
     groupedEntityIds.forEach((entityId) => {
+      const localValue = localSubBrightnessRef.current[entityId];
       nextValues[entityId] =
-        optimisticLightBrightness[entityId] ?? entities[entityId]?.attributes?.brightness ?? 0;
+        subSettleTimersRef.current.has(entityId) && localValue !== undefined
+          ? localValue
+          : optimisticLightBrightness[entityId] ?? entities[entityId]?.attributes?.brightness ?? 0;
     });
     setLocalSubBrightness(nextValues);
   }, [entities, groupedEntityIdsKey, optimisticLightBrightness, show]);
@@ -176,10 +252,24 @@ export default function LightModal({
     scheduleLightService(activeLightId, { brightness: val });
   };
 
-  const handleSubBrightnessChange = (entityId, value) => {
+  const handleSubBrightnessCommit = (entityId, value) => {
+    localSubBrightnessRef.current = { ...localSubBrightnessRef.current, [entityId]: value };
     setLocalSubBrightness((prev) => ({ ...prev, [entityId]: value }));
-    publishOptimisticBrightness(entityId, value);
-    scheduleLightService(entityId, { brightness: value });
+    const currentTimer = subSettleTimersRef.current.get(entityId);
+    if (currentTimer) clearTimeout(currentTimer);
+    callService('light', 'turn_on', { entity_id: entityId, brightness: value });
+    const timer = setTimeout(() => {
+      subSettleTimersRef.current.delete(entityId);
+      const nextLocalValues = { ...localSubBrightnessRef.current };
+      delete nextLocalValues[entityId];
+      localSubBrightnessRef.current = nextLocalValues;
+      setLocalSubBrightness((prev) => {
+        const next = { ...prev };
+        delete next[entityId];
+        return next;
+      });
+    }, LIGHT_TRANSITION_SETTLE_MS);
+    subSettleTimersRef.current.set(entityId, timer);
   };
 
   // Determine glow color
@@ -498,27 +588,14 @@ export default function LightModal({
                                 {subName}
                               </span>
                             </div>
-                            <div className="relative h-8 w-full overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)]">
-                              {/* Mini Progress Bar for Brightness */}
-                              <div
-                                className={`absolute top-0 left-0 h-full transition-all duration-300 ${subIsOn ? 'bg-amber-500 opacity-80' : 'bg-black/20 opacity-30'}`}
-                                style={{ width: `${(subBrightness / 255) * 100}%` }}
-                              />
-                              {/* Invisible Slider overlay */}
-                              <input
-                                type="range"
-                                min="0"
-                                max="255"
-                                step="1"
-                                value={subBrightness}
-                                aria-label={`${subName} ${t('light.brightness')}`}
-                                disabled={subUnavail}
-                                onChange={(e) => {
-                                  handleSubBrightnessChange(cid, parseInt(e.target.value, 10));
-                                }}
-                                className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                              />
-                            </div>
+                            <RoomLightBrightnessSlider
+                              entityId={cid}
+                              value={subBrightness}
+                              isOn={subIsOn}
+                              disabled={subUnavail}
+                              ariaLabel={`${subName} ${t('light.brightness')}`}
+                              onCommit={handleSubBrightnessCommit}
+                            />
                           </div>
 
                           {/* Toggle Button - Aligned to bottom (items-end on parent) */}
