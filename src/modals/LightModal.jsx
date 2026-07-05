@@ -108,7 +108,11 @@ export default function LightModal({
   const [localKelvin, setLocalKelvin] = useState(remoteKelvin);
   const [localHue, setLocalHue] = useState(remoteHue);
   const [localSubBrightness, setLocalSubBrightness] = useState({});
-  const isVisuallyOn = groupedEntityIds.length > 0 ? localBrightness > 0 : isOn;
+  const displayBrightness =
+    groupedEntityIds.length > 0
+      ? getAverageLightBrightness(groupedEntityIds, entities, localSubBrightness)
+      : localBrightness;
+  const isVisuallyOn = displayBrightness > 0 || (groupedEntityIds.length === 0 && isOn);
   const serviceTimersRef = useRef(new Map());
   const subSettleTimersRef = useRef(new Map());
   const brightnessSettleTimerRef = useRef(null);
@@ -126,6 +130,14 @@ export default function LightModal({
       callService('light', 'turn_on', { entity_id: entityId, ...payload });
     }, LIGHT_SERVICE_DEBOUNCE_MS);
     serviceTimersRef.current.set(entityId, timer);
+  };
+
+  const commitLightBrightness = (entityId, brightness) => {
+    if (brightness <= 0) {
+      callService('light', 'turn_off', { entity_id: entityId });
+      return;
+    }
+    callService('light', 'turn_on', { entity_id: entityId, brightness });
   };
 
   useEffect(() => {
@@ -232,7 +244,6 @@ export default function LightModal({
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     pendingBrightnessRef.current = val;
-    setLocalBrightness(val);
     if (brightnessSettleTimerRef.current) clearTimeout(brightnessSettleTimerRef.current);
 
     const targetEntityIds = groupedEntityIds.length > 0 ? groupedEntityIds : [activeLightId];
@@ -251,10 +262,12 @@ export default function LightModal({
         });
         return next;
       });
+    } else {
+      setLocalBrightness(val);
     }
 
     targetEntityIds.forEach((entityId) => {
-      callService('light', 'turn_on', { entity_id: entityId, brightness: val });
+      commitLightBrightness(entityId, val);
     });
 
     brightnessSettleTimerRef.current = setTimeout(() => {
@@ -281,7 +294,23 @@ export default function LightModal({
 
   const handleBrightnessPreview = (e) => {
     if (!activeLightId) return;
-    setLocalBrightness(parseInt(e.target.value, 10));
+    const val = parseInt(e.target.value, 10);
+    if (groupedEntityIds.length > 0) {
+      const nextLocalValues = { ...localSubBrightnessRef.current };
+      groupedEntityIds.forEach((entityId) => {
+        nextLocalValues[entityId] = val;
+      });
+      localSubBrightnessRef.current = nextLocalValues;
+      setLocalSubBrightness((prev) => {
+        const next = { ...prev };
+        groupedEntityIds.forEach((entityId) => {
+          next[entityId] = val;
+        });
+        return next;
+      });
+      return;
+    }
+    setLocalBrightness(val);
   };
 
   const updateLocalGroupBrightness = (localValues = localSubBrightnessRef.current) => {
@@ -316,7 +345,7 @@ export default function LightModal({
 
   const handleSubBrightnessCommit = (entityId, value) => {
     keepSubBrightnessLocal(entityId, value);
-    callService('light', 'turn_on', { entity_id: entityId, brightness: value });
+    commitLightBrightness(entityId, value);
   };
 
   const handleSubToggle = (entityId) => {
@@ -328,7 +357,7 @@ export default function LightModal({
           1,
           localSubBrightnessRef.current[entityId] ??
             subEntity?.attributes?.brightness ??
-            localBrightness ??
+            displayBrightness ??
             255
         );
     keepSubBrightnessLocal(entityId, nextValue);
@@ -418,7 +447,7 @@ export default function LightModal({
                 </span>
                 {isVisuallyOn && (
                   <span className="border-l border-[var(--glass-border)] pl-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase italic">
-                    {brightnessToPercent(localBrightness)}
+                    {brightnessToPercent(displayBrightness)}
                     %
                   </span>
                 )}
@@ -508,7 +537,7 @@ export default function LightModal({
                           {t('light.brightness')}
                         </label>
                         <span className="font-mono text-lg font-medium text-[var(--text-primary)]">
-                          {brightnessToPercent(localBrightness)}
+                          {brightnessToPercent(displayBrightness)}
                           %
                         </span>
                       </div>
@@ -517,7 +546,7 @@ export default function LightModal({
                           min={0}
                           max={255}
                           step={1}
-                          value={localBrightness}
+                          value={displayBrightness}
                           disabled={isUnavailable}
                           onChange={handleBrightnessChange}
                           onPreviewChange={handleBrightnessPreview}

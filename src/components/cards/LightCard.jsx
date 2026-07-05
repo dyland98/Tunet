@@ -91,6 +91,10 @@ const LightCard = ({
       setLocalBrightness(val);
       const targetEntityIds = hasSubEntities ? subEntities : [cardId];
       targetEntityIds.forEach((entityId) => {
+        if (val <= 0) {
+          callService('light', 'turn_off', { entity_id: entityId });
+          return;
+        }
         callService('light', 'turn_on', { entity_id: entityId, brightness: val });
       });
     },
