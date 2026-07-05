@@ -221,7 +221,12 @@ export default function LightModal({
   }, [show]);
 
   useEffect(() => {
-    if (show && !isDraggingRef.current && !brightnessSettleTimerRef.current) {
+    if (
+      show &&
+      !isDraggingRef.current &&
+      !brightnessSettleTimerRef.current &&
+      subSettleTimersRef.current.size === 0
+    ) {
       setLocalBrightness(optimisticLightBrightness[activeLightId] ?? remoteBrightness);
     }
   }, [activeLightId, optimisticLightBrightness, remoteBrightness, show]);
@@ -322,24 +327,67 @@ export default function LightModal({
     setLocalBrightness(parseInt(e.target.value, 10));
   };
 
-  const handleSubBrightnessCommit = (entityId, value) => {
-    localSubBrightnessRef.current = { ...localSubBrightnessRef.current, [entityId]: value };
+  const getSubBrightnessValue = (entityId, localValues = localSubBrightnessRef.current) =>
+    localValues[entityId] ??
+    optimisticLightBrightness[entityId] ??
+    getEntityBrightnessValue(entities[entityId]);
+
+  const updateLocalGroupBrightness = (localValues = localSubBrightnessRef.current) => {
+    if (groupedEntityIds.length === 0) return;
+    const nextAverage = Math.round(
+      groupedEntityIds.reduce((sum, entityId) => {
+        return sum + getSubBrightnessValue(entityId, localValues);
+      }, 0) / groupedEntityIds.length
+    );
+    setLocalBrightness(nextAverage);
+  };
+
+  const keepSubBrightnessLocal = (entityId, value) => {
+    const nextLocalValues = { ...localSubBrightnessRef.current, [entityId]: value };
+    localSubBrightnessRef.current = nextLocalValues;
     setLocalSubBrightness((prev) => ({ ...prev, [entityId]: value }));
+    updateLocalGroupBrightness(nextLocalValues);
+
     const currentTimer = subSettleTimersRef.current.get(entityId);
     if (currentTimer) clearTimeout(currentTimer);
-    callService('light', 'turn_on', { entity_id: entityId, brightness: value });
     const timer = setTimeout(() => {
       subSettleTimersRef.current.delete(entityId);
-      const nextLocalValues = { ...localSubBrightnessRef.current };
-      delete nextLocalValues[entityId];
-      localSubBrightnessRef.current = nextLocalValues;
+      const settledLocalValues = { ...localSubBrightnessRef.current };
+      delete settledLocalValues[entityId];
+      localSubBrightnessRef.current = settledLocalValues;
       setLocalSubBrightness((prev) => {
         const next = { ...prev };
         delete next[entityId];
         return next;
       });
+      if (!brightnessSettleTimerRef.current) updateLocalGroupBrightness(settledLocalValues);
     }, LIGHT_TRANSITION_SETTLE_MS);
     subSettleTimersRef.current.set(entityId, timer);
+  };
+
+  const handleSubBrightnessCommit = (entityId, value) => {
+    keepSubBrightnessLocal(entityId, value);
+    callService('light', 'turn_on', { entity_id: entityId, brightness: value });
+  };
+
+  const handleSubToggle = (entityId) => {
+    const subEntity = entities[entityId];
+    const isCurrentlyOn = subEntity?.state === 'on';
+    const nextValue = isCurrentlyOn
+      ? 0
+      : Math.max(
+          1,
+          localSubBrightnessRef.current[entityId] ??
+            subEntity?.attributes?.brightness ??
+            localBrightness ??
+            255
+        );
+    keepSubBrightnessLocal(entityId, nextValue);
+    if (isCurrentlyOn) {
+      callService('light', 'turn_off', { entity_id: entityId });
+    } else {
+      callService('light', 'turn_on', { entity_id: entityId, brightness: nextValue });
+    }
   };
 
   // Determine glow color
@@ -650,7 +698,7 @@ export default function LightModal({
                       const subBrightness =
                         localSubBrightness[cid] ??
                         optimisticLightBrightness[cid] ??
-                        (subEnt?.attributes?.brightness || 0);
+                        getEntityBrightnessValue(subEnt);
 
                       return (
                         <div key={cid} className="flex items-end gap-3">
@@ -672,7 +720,7 @@ export default function LightModal({
 
                           {/* Toggle Button - Aligned to bottom (items-end on parent) */}
                           <button
-                            onClick={() => callService('light', 'toggle', { entity_id: cid })}
+                            onClick={() => handleSubToggle(cid)}
                             aria-label={`${subName} ${t('common.toggle')}`}
                             className={`flex h-8 w-12 items-center justify-center rounded-xl border transition-all ${subIsOn ? 'border-amber-500/30 bg-amber-500/20 text-amber-400' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
                           >

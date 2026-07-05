@@ -27,6 +27,7 @@ export default function M3Slider({
   const [internalValue, setInternalValue] = useState(value);
   const [isInteracting, setIsInteracting] = useState(false);
   const isInteractingRef = useRef(false);
+  const containerRef = useRef(null);
   const inputRef = useRef(null);
   const timeoutRef = useRef(null);
   const frameRef = useRef(null);
@@ -62,14 +63,45 @@ export default function M3Slider({
   const percentage =
     max === min ? 0 : Math.min(100, Math.max(0, ((internalValue - min) / (max - min)) * 100));
 
-  const beginInteraction = () => {
+  const normalizeValue = (rawValue) => {
+    const numericStep = Number(step) || 1;
+    const clamped = Math.min(max, Math.max(min, rawValue));
+    const stepped = Math.round((clamped - min) / numericStep) * numericStep + min;
+    return Math.min(max, Math.max(min, stepped));
+  };
+
+  const previewValue = (nextValue) => {
+    setInternalValue(nextValue);
+    pendingValueRef.current = nextValue;
+    if (inputRef.current instanceof HTMLInputElement) {
+      inputRef.current.value = String(nextValue);
+    }
+    onPreviewChange?.({ target: { value: String(nextValue) } });
+  };
+
+  const valueFromClientX = (clientX) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return pendingValueRef.current;
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return normalizeValue(min + ratio * (max - min));
+  };
+
+  const updateFromPointer = (event) => {
+    if (!commitOnly || disabled || event.clientX == null) return;
+    previewValue(valueFromClientX(event.clientX));
+  };
+
+  const beginInteraction = (event) => {
     isInteractingRef.current = true;
     setIsInteracting(true);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    event?.currentTarget?.setPointerCapture?.(event.pointerId);
+    updateFromPointer(event || {});
   };
 
-  const endInteraction = () => {
+  const endInteraction = (event) => {
     if (!isInteractingRef.current) return;
+    updateFromPointer(event || {});
     isInteractingRef.current = false;
     const inputValue =
       inputRef.current instanceof HTMLInputElement
@@ -86,9 +118,7 @@ export default function M3Slider({
 
   const handleInputChange = (e) => {
     const nextValue = parseFloat(e.target.value);
-    setInternalValue(nextValue);
-    pendingValueRef.current = nextValue;
-    onPreviewChange?.({ target: { value: String(nextValue) } });
+    previewValue(nextValue);
 
     if (commitOnly && isInteractingRef.current) return;
     if (frameRef.current) return;
@@ -127,11 +157,35 @@ export default function M3Slider({
     style: { touchAction: commitOnly ? 'none' : 'pan-x', WebkitTapHighlightColor: 'transparent' },
   };
 
+  const handleTouchMove = (event) => {
+    if (!commitOnly || !isInteractingRef.current) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    previewValue(valueFromClientX(touch.clientX));
+  };
+
+  const handleTouchEnd = () => {
+    endInteraction({});
+  };
+
+  const containerProps = {
+    ref: containerRef,
+    onPointerDown: beginInteraction,
+    onPointerMove: (event) => {
+      if (isInteractingRef.current) updateFromPointer(event);
+    },
+    onPointerUp: endInteraction,
+    onPointerCancel: endInteraction,
+    onTouchMove: handleTouchMove,
+    onTouchEnd: handleTouchEnd,
+  };
+
   if (variant === 'thin') {
     return (
       <div
+        {...containerProps}
         className={`group relative flex h-4 w-full cursor-pointer items-center ${disabled ? 'pointer-events-none opacity-30' : ''}`}
-        style={{ touchAction: 'pan-x' }}
+        style={{ touchAction: commitOnly ? 'none' : 'pan-x' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute h-1 w-full overflow-hidden rounded-full bg-white/10 transition-all duration-300 group-hover:h-1.5">
@@ -152,8 +206,9 @@ export default function M3Slider({
   if (variant === 'thinLg') {
     return (
       <div
+        {...containerProps}
         className={`group relative flex h-6 w-full cursor-pointer items-center ${disabled ? 'pointer-events-none opacity-30' : ''}`}
-        style={{ touchAction: 'pan-x' }}
+        style={{ touchAction: commitOnly ? 'none' : 'pan-x' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute h-2 w-full overflow-hidden rounded-full bg-white/10 transition-all duration-300 group-hover:h-2.5">
@@ -174,8 +229,9 @@ export default function M3Slider({
   if (variant === 'volume') {
     return (
       <div
+        {...containerProps}
         className={`group relative flex h-10 w-full items-center ${disabled ? 'pointer-events-none opacity-30' : ''}`}
-        style={{ touchAction: 'pan-x' }}
+        style={{ touchAction: commitOnly ? 'none' : 'pan-x' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute h-full w-full overflow-hidden rounded-2xl border border-white/5 bg-white/5">
@@ -198,8 +254,9 @@ export default function M3Slider({
 
   return (
     <div
+      {...containerProps}
       className={`relative w-full ${containerH} group flex items-center ${disabled ? 'pointer-events-none opacity-30' : ''}`}
-      style={{ touchAction: 'pan-x' }}
+      style={{ touchAction: commitOnly ? 'none' : 'pan-x' }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Track */}
