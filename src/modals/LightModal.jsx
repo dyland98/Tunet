@@ -14,6 +14,8 @@ import M3Slider from '../components/ui/M3Slider';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getIconComponent } from '../icons';
 
+const LIGHT_SERVICE_DEBOUNCE_MS = 260;
+
 export default function LightModal({
   show,
   onClose,
@@ -44,6 +46,7 @@ export default function LightModal({
   const supportsColor = colorModes.some((mode) => ['hs', 'rgb', 'xy'].includes(mode));
   const showPills = isDimmable && (supportsColorTemp || supportsColor);
   const groupedEntityIds = activeLightId ? getA(activeLightId, 'entity_id', []) : [];
+  const groupedEntityIdsKey = groupedEntityIds.join('|');
   const showRightPanel = isDimmable || groupedEntityIds.length > 0;
   const modalTitleId = `light-modal-title-${activeLightId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
@@ -72,17 +75,55 @@ export default function LightModal({
       ? Math.round(1000000 / entity.attributes.color_temp)
       : Math.round((minKelvin + maxKelvin) / 2));
   const remoteHue = entity?.attributes?.hs_color?.[0] ?? 0;
+  const remoteBrightness = getA(activeLightId, 'brightness') || 0;
 
   // --- Local State for Optimistic UI ---
   const [activeTab, setActiveTab] = useState('brightness');
+  const [localBrightness, setLocalBrightness] = useState(remoteBrightness);
   const [localKelvin, setLocalKelvin] = useState(remoteKelvin);
   const [localHue, setLocalHue] = useState(remoteHue);
+  const [localSubBrightness, setLocalSubBrightness] = useState({});
   const isDraggingRef = useRef(false);
+  const serviceTimersRef = useRef(new Map());
+
+  const scheduleLightService = (entityId, payload, onCommit) => {
+    const currentTimer = serviceTimersRef.current.get(entityId);
+    if (currentTimer) clearTimeout(currentTimer);
+    const timer = setTimeout(() => {
+      serviceTimersRef.current.delete(entityId);
+      onCommit?.();
+      callService('light', 'turn_on', { entity_id: entityId, ...payload });
+    }, LIGHT_SERVICE_DEBOUNCE_MS);
+    serviceTimersRef.current.set(entityId, timer);
+  };
+
+  useEffect(() => {
+    return () => {
+      serviceTimersRef.current.forEach((timer) => clearTimeout(timer));
+      serviceTimersRef.current.clear();
+    };
+  }, []);
 
   // Reset tab on open
   useEffect(() => {
     if (show) setActiveTab('brightness');
   }, [show]);
+
+  useEffect(() => {
+    if (show && !isDraggingRef.current) {
+      setLocalBrightness(optimisticLightBrightness[activeLightId] ?? remoteBrightness);
+    }
+  }, [activeLightId, optimisticLightBrightness, remoteBrightness, show]);
+
+  useEffect(() => {
+    if (!show || isDraggingRef.current) return;
+    const nextValues = {};
+    groupedEntityIds.forEach((entityId) => {
+      nextValues[entityId] =
+        optimisticLightBrightness[entityId] ?? entities[entityId]?.attributes?.brightness ?? 0;
+    });
+    setLocalSubBrightness(nextValues);
+  }, [entities, groupedEntityIdsKey, optimisticLightBrightness, show]);
 
   // Sync remote -> local when NOT dragging
   useEffect(() => {
@@ -102,14 +143,33 @@ export default function LightModal({
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalKelvin(val);
-    callService('light', 'turn_on', { entity_id: activeLightId, color_temp_kelvin: val });
+    scheduleLightService(activeLightId, { color_temp_kelvin: val });
   };
 
   const handleHueChange = (e) => {
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalHue(val);
-    callService('light', 'turn_on', { entity_id: activeLightId, hs_color: [val, 100] });
+    scheduleLightService(activeLightId, { hs_color: [val, 100] });
+  };
+
+  const handleBrightnessChange = (e) => {
+    if (!activeLightId) return;
+    const val = parseInt(e.target.value, 10);
+    setLocalBrightness(val);
+    scheduleLightService(activeLightId, { brightness: val }, () => {
+      setOptimisticLightBrightness((prev) => ({
+        ...prev,
+        [activeLightId]: val,
+      }));
+    });
+  };
+
+  const handleSubBrightnessChange = (entityId, value) => {
+    setLocalSubBrightness((prev) => ({ ...prev, [entityId]: value }));
+    scheduleLightService(entityId, { brightness: value }, () => {
+      setOptimisticLightBrightness((prev) => ({ ...prev, [entityId]: value }));
+    });
   };
 
   // Determine glow color
@@ -192,10 +252,7 @@ export default function LightModal({
                 {isOn && (
                   <span className="border-l border-[var(--glass-border)] pl-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase italic">
                     {Math.round(
-                      ((optimisticLightBrightness[activeLightId] ??
-                        (getA(activeLightId, 'brightness') || 0)) /
-                        255) *
-                        100
+                      (localBrightness / 255) * 100
                     )}
                     %
                   </span>
@@ -287,10 +344,7 @@ export default function LightModal({
                         </label>
                         <span className="font-mono text-lg font-medium text-[var(--text-primary)]">
                           {Math.round(
-                            ((optimisticLightBrightness[activeLightId] ??
-                              (getA(activeLightId, 'brightness') || 0)) /
-                              255) *
-                              100
+                            (localBrightness / 255) * 100
                           )}
                           %
                         </span>
@@ -300,22 +354,9 @@ export default function LightModal({
                           min={0}
                           max={255}
                           step={1}
-                          value={
-                            optimisticLightBrightness[activeLightId] ??
-                            (getA(activeLightId, 'brightness') || 0)
-                          }
+                          value={localBrightness}
                           disabled={isUnavailable}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            setOptimisticLightBrightness((prev) => ({
-                              ...prev,
-                              [activeLightId]: val,
-                            }));
-                            callService('light', 'turn_on', {
-                              entity_id: activeLightId,
-                              brightness: val,
-                            });
-                          }}
+                          onChange={handleBrightnessChange}
                           ariaLabel={t('light.brightness')}
                           colorClass="bg-amber-500"
                           variant="fat" // Keep fat for touch, but in smaller container
@@ -347,6 +388,7 @@ export default function LightModal({
                           disabled={isUnavailable}
                           onPointerDown={() => (isDraggingRef.current = true)}
                           onPointerUp={() => (isDraggingRef.current = false)}
+                          onPointerCancel={() => (isDraggingRef.current = false)}
                           onChange={handleTempChange}
                           className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
                         />
@@ -395,6 +437,7 @@ export default function LightModal({
                           disabled={isUnavailable}
                           onPointerDown={() => (isDraggingRef.current = true)}
                           onPointerUp={() => (isDraggingRef.current = false)}
+                          onPointerCancel={() => (isDraggingRef.current = false)}
                           onChange={handleHueChange}
                           className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
                         />
@@ -433,7 +476,9 @@ export default function LightModal({
                       const subIsOn = subEnt?.state === 'on';
                       const subUnavail = subEnt?.state === 'unavailable';
                       const subBrightness =
-                        optimisticLightBrightness[cid] ?? (subEnt?.attributes?.brightness || 0);
+                        localSubBrightness[cid] ??
+                        optimisticLightBrightness[cid] ??
+                        (subEnt?.attributes?.brightness || 0);
 
                       return (
                         <div key={cid} className="flex items-end gap-3">
@@ -459,12 +504,7 @@ export default function LightModal({
                                 aria-label={`${subName} ${t('light.brightness')}`}
                                 disabled={subUnavail}
                                 onChange={(e) => {
-                                  const val = parseInt(e.target.value);
-                                  setOptimisticLightBrightness((prev) => ({ ...prev, [cid]: val }));
-                                  callService('light', 'turn_on', {
-                                    entity_id: cid,
-                                    brightness: val,
-                                  });
+                                  handleSubBrightnessChange(cid, parseInt(e.target.value, 10));
                                 }}
                                 className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                               />
