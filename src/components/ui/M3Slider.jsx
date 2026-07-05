@@ -33,9 +33,18 @@ export default function M3Slider({
   const committedValueRef = useRef(value);
 
   useEffect(() => {
-    if (!isInteracting) setInternalValue(value);
+    if (!isInteracting) {
+      if (
+        commitOnly &&
+        committedValueRef.current === pendingValueRef.current &&
+        value !== pendingValueRef.current
+      ) {
+        return;
+      }
+      setInternalValue(value);
+    }
     committedValueRef.current = value;
-  }, [value, isInteracting]);
+  }, [value, isInteracting, commitOnly]);
 
   useEffect(() => {
     return () => {

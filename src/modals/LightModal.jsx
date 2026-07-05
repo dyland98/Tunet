@@ -27,11 +27,19 @@ function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel,
   const [localValue, setLocalValue] = useState(value);
   const isInteractingRef = useRef(false);
   const pendingValueRef = useRef(value);
+  const committedValueRef = useRef(value);
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (!isInteractingRef.current) {
+      if (
+        committedValueRef.current === pendingValueRef.current &&
+        value !== pendingValueRef.current
+      ) {
+        return;
+      }
       pendingValueRef.current = value;
+      committedValueRef.current = value;
       setLocalValue(value);
     }
   }, [value]);
@@ -44,6 +52,7 @@ function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel,
         ? parseInt(inputRef.current.value, 10)
         : pendingValueRef.current;
     pendingValueRef.current = inputValue;
+    committedValueRef.current = inputValue;
     setLocalValue(inputValue);
     onCommit(entityId, inputValue);
   };
