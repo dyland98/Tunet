@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, memo } from 'react';
+import { useRef, useEffect, useCallback, memo, useState } from 'react';
 import { getIconComponent } from '../../icons';
 import { Lightbulb, Thermometer, Droplets } from '../../icons';
 import M3Slider from '../ui/M3Slider';
@@ -33,6 +33,8 @@ const LightCard = ({
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
   const isOn = state === 'on';
   const br = getA(cardId, 'brightness') || 0;
+  const [localBrightness, setLocalBrightness] = useState(null);
+  const displayBrightness = localBrightness ?? optimisticLightBrightness[cardId] ?? br;
   const subEntities = getA(cardId, 'entity_id', []);
   const activeCount = subEntities.filter((id) => entities[id]?.state === 'on').length;
   const totalCount = subEntities.length;
@@ -60,15 +62,25 @@ const LightCard = ({
 
   // Debounced brightness service call
   const debounceRef = useRef(null);
-  useEffect(() => () => clearTimeout(debounceRef.current), []);
+  const localResetRef = useRef(null);
+  useEffect(
+    () => () => {
+      clearTimeout(debounceRef.current);
+      clearTimeout(localResetRef.current);
+    },
+    []
+  );
 
   const handleBrightnessChange = useCallback(
     (e) => {
-      const val = parseInt(e.target.value);
-      setOptimisticLightBrightness((prev) => ({ ...prev, [cardId]: val }));
+      const val = parseInt(e.target.value, 10);
+      setLocalBrightness(val);
       clearTimeout(debounceRef.current);
+      clearTimeout(localResetRef.current);
       debounceRef.current = setTimeout(() => {
+        setOptimisticLightBrightness((prev) => ({ ...prev, [cardId]: val }));
         callService('light', 'turn_on', { entity_id: cardId, brightness: val });
+        localResetRef.current = setTimeout(() => setLocalBrightness(null), 1400);
       }, SLIDER_DEBOUNCE_MS);
     },
     [cardId, callService, setOptimisticLightBrightness]
@@ -143,7 +155,7 @@ const LightCard = ({
                 min={0}
                 max={255}
                 step={1}
-                value={optimisticLightBrightness[cardId] ?? br}
+                value={displayBrightness}
                 disabled={isUnavailable}
                 onChange={handleBrightnessChange}
                 colorClass="bg-amber-500"
@@ -239,9 +251,9 @@ const LightCard = ({
                 className={`${isDenseMobile ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-[var(--text-primary)]`}
               >
                 {isUnavailable
-                  ? '--'
-                  : isOn
-                    ? Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100)
+                    ? '--'
+                    : isOn
+                    ? Math.round((displayBrightness / 255) * 100)
                     : '0'}
               </span>
               <span className={`${isDenseMobile ? 'text-lg' : 'ml-1 text-xl'} font-light text-[var(--text-muted)]`}>
@@ -270,7 +282,7 @@ const LightCard = ({
               min={0}
               max={255}
               step={1}
-              value={optimisticLightBrightness[cardId] ?? br}
+              value={displayBrightness}
               disabled={isUnavailable}
               onChange={handleBrightnessChange}
               colorClass="bg-amber-500"
