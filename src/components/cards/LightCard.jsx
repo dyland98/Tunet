@@ -3,7 +3,7 @@ import { getIconComponent } from '../../icons';
 import { Lightbulb, Thermometer, Droplets } from '../../icons';
 import M3Slider from '../ui/M3Slider';
 
-const SLIDER_DEBOUNCE_MS = 200;
+const LIGHT_TRANSITION_SETTLE_MS = 1800;
 
 /** @param {any} props */
 const LightCard = ({
@@ -22,7 +22,6 @@ const LightCard = ({
   onOpen,
   isMobile,
   optimisticLightBrightness,
-  setOptimisticLightBrightness,
   t,
 }) => {
   const entity = entities[cardId];
@@ -60,38 +59,34 @@ const LightCard = ({
   const humidityValue = humidityEntity && humidityEntity.state !== 'unavailable' ? humidityEntity.state : null;
   const humidityUnit = humidityEntity?.attributes?.unit_of_measurement || '%';
 
-  // Debounced brightness service call
-  const debounceRef = useRef(null);
   const localResetRef = useRef(null);
   useEffect(
     () => () => {
-      clearTimeout(debounceRef.current);
       clearTimeout(localResetRef.current);
     },
     []
   );
+  useEffect(() => {
+    setLocalBrightness(null);
+  }, [cardId]);
 
   const handleBrightnessChange = useCallback(
     (e) => {
       const val = parseInt(e.target.value, 10);
       setLocalBrightness(val);
-      clearTimeout(debounceRef.current);
       clearTimeout(localResetRef.current);
-      debounceRef.current = setTimeout(() => {
-        setOptimisticLightBrightness((prev) => ({ ...prev, [cardId]: val }));
-        callService('light', 'turn_on', { entity_id: cardId, brightness: val });
-        localResetRef.current = setTimeout(() => setLocalBrightness(null), 1400);
-      }, SLIDER_DEBOUNCE_MS);
+      callService('light', 'turn_on', { entity_id: cardId, brightness: val });
+      localResetRef.current = setTimeout(() => setLocalBrightness(null), LIGHT_TRANSITION_SETTLE_MS);
     },
-    [cardId, callService, setOptimisticLightBrightness]
+    [cardId, callService]
   );
 
   const handleToggleLight = useCallback(
     (event) => {
       event.stopPropagation();
       if (isUnavailable) return;
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
+      clearTimeout(localResetRef.current);
+      setLocalBrightness(null);
       callService('light', 'toggle', { entity_id: cardId });
     },
     [cardId, callService, isUnavailable]

@@ -25,6 +25,7 @@ export default function M3Slider({
     propColorClass === 'bg-[var(--accent-color)]' ? 'bg-[var(--accent-color)]' : propColorClass;
   const [internalValue, setInternalValue] = useState(value);
   const [isInteracting, setIsInteracting] = useState(false);
+  const isInteractingRef = useRef(false);
   const timeoutRef = useRef(null);
   const frameRef = useRef(null);
   const pendingValueRef = useRef(value);
@@ -51,11 +52,14 @@ export default function M3Slider({
     max === min ? 0 : Math.min(100, Math.max(0, ((internalValue - min) / (max - min)) * 100));
 
   const beginInteraction = () => {
+    isInteractingRef.current = true;
     setIsInteracting(true);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   };
 
   const endInteraction = () => {
+    if (!isInteractingRef.current) return;
+    isInteractingRef.current = false;
     if (commitOnly && pendingValueRef.current !== committedValueRef.current) {
       committedValueRef.current = pendingValueRef.current;
       onChange({ target: { value: String(pendingValueRef.current) } });
@@ -68,7 +72,7 @@ export default function M3Slider({
     setInternalValue(nextValue);
     pendingValueRef.current = nextValue;
 
-    if (commitOnly && isInteracting) return;
+    if (commitOnly && isInteractingRef.current) return;
     if (frameRef.current) return;
 
     frameRef.current = requestAnimationFrame(() => {
