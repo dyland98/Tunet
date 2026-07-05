@@ -101,6 +101,10 @@ const LightCard = ({
     [cardId, callService, hasSubEntities, subEntities]
   );
 
+  const handleBrightnessPreview = useCallback((e) => {
+    setLocalBrightness(parseInt(e.target.value, 10));
+  }, []);
+
   const handleToggleLight = useCallback(
     (event) => {
       event.stopPropagation();
@@ -173,6 +177,7 @@ const LightCard = ({
                 value={displayBrightness}
                 disabled={isUnavailable}
                 onChange={handleBrightnessChange}
+                onPreviewChange={handleBrightnessPreview}
                 colorClass="bg-amber-500"
                 ariaLabel={t('light.brightness')}
                 commitOnly
@@ -301,6 +306,7 @@ const LightCard = ({
               value={displayBrightness}
               disabled={isUnavailable}
               onChange={handleBrightnessChange}
+              onPreviewChange={handleBrightnessPreview}
               colorClass="bg-amber-500"
               ariaLabel={t('light.brightness')}
               commitOnly

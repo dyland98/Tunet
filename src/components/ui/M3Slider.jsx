@@ -6,6 +6,7 @@ export default function M3Slider({
   step,
   value,
   onChange,
+  onPreviewChange,
   colorClass: propColorClass = 'bg-[var(--accent-color)]',
   disabled = false,
   variant = 'default',
@@ -87,6 +88,7 @@ export default function M3Slider({
     const nextValue = parseFloat(e.target.value);
     setInternalValue(nextValue);
     pendingValueRef.current = nextValue;
+    onPreviewChange?.({ target: { value: String(nextValue) } });
 
     if (commitOnly && isInteractingRef.current) return;
     if (frameRef.current) return;

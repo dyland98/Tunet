@@ -317,6 +317,11 @@ export default function LightModal({
     }
   };
 
+  const handleBrightnessPreview = (e) => {
+    if (!activeLightId) return;
+    setLocalBrightness(parseInt(e.target.value, 10));
+  };
+
   const handleSubBrightnessCommit = (entityId, value) => {
     localSubBrightnessRef.current = { ...localSubBrightnessRef.current, [entityId]: value };
     setLocalSubBrightness((prev) => ({ ...prev, [entityId]: value }));
@@ -522,6 +527,7 @@ export default function LightModal({
                           value={localBrightness}
                           disabled={isUnavailable}
                           onChange={handleBrightnessChange}
+                          onPreviewChange={handleBrightnessPreview}
                           ariaLabel={t('light.brightness')}
                           colorClass="bg-amber-500"
                           variant="fat" // Keep fat for touch, but in smaller container
