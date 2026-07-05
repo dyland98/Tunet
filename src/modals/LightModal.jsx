@@ -28,18 +28,19 @@ function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel,
   const isInteractingRef = useRef(false);
   const pendingValueRef = useRef(value);
   const committedValueRef = useRef(value);
-  const ignoreStaleValueUntilRef = useRef(0);
+  const lockedCommitValueRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (!isInteractingRef.current) {
-      if (
-        ignoreStaleValueUntilRef.current > Date.now() &&
-        value !== committedValueRef.current
-      ) {
-        return;
+      if (lockedCommitValueRef.current !== null) {
+        if (Math.abs(value - lockedCommitValueRef.current) <= 2) {
+          lockedCommitValueRef.current = null;
+        } else {
+          setLocalValue(lockedCommitValueRef.current);
+          return;
+        }
       }
-      ignoreStaleValueUntilRef.current = 0;
       pendingValueRef.current = value;
       committedValueRef.current = value;
       setLocalValue(value);
@@ -55,12 +56,13 @@ function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel,
         : pendingValueRef.current;
     pendingValueRef.current = inputValue;
     committedValueRef.current = inputValue;
-    ignoreStaleValueUntilRef.current = Date.now() + LIGHT_TRANSITION_SETTLE_MS;
+    lockedCommitValueRef.current = inputValue;
     setLocalValue(inputValue);
     onCommit(entityId, inputValue);
   };
 
   const beginInteraction = (event) => {
+    lockedCommitValueRef.current = null;
     isInteractingRef.current = true;
     event.currentTarget?.setPointerCapture?.(event.pointerId);
   };

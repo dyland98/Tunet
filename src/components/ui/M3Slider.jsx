@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useId } from 'react';
 
-const COMMITTED_VALUE_SETTLE_MS = 1800;
-
 export default function M3Slider({
   min,
   max,
@@ -35,18 +33,19 @@ export default function M3Slider({
   const frameRef = useRef(null);
   const pendingValueRef = useRef(value);
   const committedValueRef = useRef(value);
-  const ignoreStaleValueUntilRef = useRef(0);
+  const lockedCommitValueRef = useRef(null);
 
   useEffect(() => {
     if (!isInteracting) {
-      if (
-        commitOnly &&
-        ignoreStaleValueUntilRef.current > Date.now() &&
-        value !== committedValueRef.current
-      ) {
-        return;
+      if (commitOnly && lockedCommitValueRef.current !== null) {
+        const tolerance = Math.max(Number(step) || 1, 2);
+        if (Math.abs(value - lockedCommitValueRef.current) <= tolerance) {
+          lockedCommitValueRef.current = null;
+        } else {
+          setInternalValue(lockedCommitValueRef.current);
+          return;
+        }
       }
-      ignoreStaleValueUntilRef.current = 0;
       setInternalValue(value);
     }
     committedValueRef.current = value;
@@ -96,6 +95,7 @@ export default function M3Slider({
   };
 
   const beginInteraction = (event) => {
+    lockedCommitValueRef.current = null;
     isInteractingRef.current = true;
     setIsInteracting(true);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -115,7 +115,7 @@ export default function M3Slider({
     setInternalValue(inputValue);
     if (commitOnly && pendingValueRef.current !== committedValueRef.current) {
       committedValueRef.current = pendingValueRef.current;
-      ignoreStaleValueUntilRef.current = Date.now() + COMMITTED_VALUE_SETTLE_MS;
+      lockedCommitValueRef.current = pendingValueRef.current;
       onChange({ target: { value: String(pendingValueRef.current) } });
     }
     timeoutRef.current = setTimeout(() => setIsInteracting(false), 120);
