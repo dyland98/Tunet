@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useId } from 'react';
 
+const COMMITTED_VALUE_SETTLE_MS = 1800;
+
 export default function M3Slider({
   min,
   max,
@@ -33,9 +35,18 @@ export default function M3Slider({
   const frameRef = useRef(null);
   const pendingValueRef = useRef(value);
   const committedValueRef = useRef(value);
+  const ignoreStaleValueUntilRef = useRef(0);
 
   useEffect(() => {
     if (!isInteracting) {
+      if (
+        commitOnly &&
+        ignoreStaleValueUntilRef.current > Date.now() &&
+        value !== committedValueRef.current
+      ) {
+        return;
+      }
+      ignoreStaleValueUntilRef.current = 0;
       setInternalValue(value);
     }
     committedValueRef.current = value;
@@ -104,6 +115,7 @@ export default function M3Slider({
     setInternalValue(inputValue);
     if (commitOnly && pendingValueRef.current !== committedValueRef.current) {
       committedValueRef.current = pendingValueRef.current;
+      ignoreStaleValueUntilRef.current = Date.now() + COMMITTED_VALUE_SETTLE_MS;
       onChange({ target: { value: String(pendingValueRef.current) } });
     }
     timeoutRef.current = setTimeout(() => setIsInteracting(false), 120);
