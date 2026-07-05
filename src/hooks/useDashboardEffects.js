@@ -58,15 +58,36 @@ export function useDashboardEffects({
     return () => clearTimeout(id);
   }, [optimisticLightBrightness]);
 
-  // ── Haptic feedback on touch ───────────────────────────────────────────
+  // ── Haptic and visual feedback on touch ────────────────────────────────
   useEffect(() => {
     let pendingTarget = null;
     let startX = 0;
     let startY = 0;
     const MOVE_THRESHOLD = 10; // px — if finger moves more, it's a scroll
+    const PRESS_SELECTOR =
+      'button:not(:disabled), [role="button"], a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [data-haptic], .touch-feedback';
+
+    const showVisualPress = (event) => {
+      const target = event.target?.closest?.(PRESS_SELECTOR);
+      if (!target || target.getAttribute?.('aria-disabled') === 'true') return;
+
+      const pressTarget =
+        target.tagName === 'INPUT' && target.parentElement ? target.parentElement : target;
+      pressTarget.classList.add('is-touch-pressing');
+      window.setTimeout(() => pressTarget.classList.remove('is-touch-pressing'), 180);
+
+      const dot = document.createElement('span');
+      dot.className = 'touch-point-feedback';
+      dot.style.left = `${event.clientX}px`;
+      dot.style.top = `${event.clientY}px`;
+      document.body.appendChild(dot);
+      dot.addEventListener('animationend', () => dot.remove(), { once: true });
+      window.setTimeout(() => dot.remove(), 500);
+    };
 
     const onDown = (e) => {
       if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+      showVisualPress(e);
       if (!e.target?.closest?.('[data-haptic]')) return;
       pendingTarget = e.target;
       startX = e.clientX;
@@ -150,7 +171,20 @@ export function useDashboardEffects({
         if (resetToHomeRef.current) resetToHomeRef.current();
       }, inactivityTimeout * 1000);
     };
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    const events = [
+      'mousedown',
+      'mousemove',
+      'pointerdown',
+      'pointermove',
+      'pointerup',
+      'keypress',
+      'scroll',
+      'touchstart',
+      'touchmove',
+      'click',
+      'input',
+      'change',
+    ];
     events.forEach((e) => document.addEventListener(e, reset));
     reset();
     return () => {

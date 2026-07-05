@@ -85,6 +85,20 @@ export default function LightModal({
   const [localSubBrightness, setLocalSubBrightness] = useState({});
   const isDraggingRef = useRef(false);
   const serviceTimersRef = useRef(new Map());
+  const optimisticFrameRef = useRef(null);
+  const pendingOptimisticRef = useRef({});
+
+  const publishOptimisticBrightness = (entityId, value) => {
+    pendingOptimisticRef.current[entityId] = value;
+    if (optimisticFrameRef.current) return;
+
+    optimisticFrameRef.current = requestAnimationFrame(() => {
+      optimisticFrameRef.current = null;
+      const pending = pendingOptimisticRef.current;
+      pendingOptimisticRef.current = {};
+      setOptimisticLightBrightness((prev) => ({ ...prev, ...pending }));
+    });
+  };
 
   const scheduleLightService = (entityId, payload, onCommit) => {
     const currentTimer = serviceTimersRef.current.get(entityId);
@@ -101,6 +115,7 @@ export default function LightModal({
     return () => {
       serviceTimersRef.current.forEach((timer) => clearTimeout(timer));
       serviceTimersRef.current.clear();
+      if (optimisticFrameRef.current) cancelAnimationFrame(optimisticFrameRef.current);
     };
   }, []);
 
@@ -157,19 +172,14 @@ export default function LightModal({
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalBrightness(val);
-    scheduleLightService(activeLightId, { brightness: val }, () => {
-      setOptimisticLightBrightness((prev) => ({
-        ...prev,
-        [activeLightId]: val,
-      }));
-    });
+    publishOptimisticBrightness(activeLightId, val);
+    scheduleLightService(activeLightId, { brightness: val });
   };
 
   const handleSubBrightnessChange = (entityId, value) => {
     setLocalSubBrightness((prev) => ({ ...prev, [entityId]: value }));
-    scheduleLightService(entityId, { brightness: value }, () => {
-      setOptimisticLightBrightness((prev) => ({ ...prev, [entityId]: value }));
-    });
+    publishOptimisticBrightness(entityId, value);
+    scheduleLightService(entityId, { brightness: value });
   };
 
   // Determine glow color
