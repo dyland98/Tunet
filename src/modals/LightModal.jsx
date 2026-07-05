@@ -121,7 +121,6 @@ export default function LightModal({
   entities,
   callService,
   getA,
-  optimisticLightBrightness,
   customIcons,
   t,
 }) {
@@ -193,6 +192,7 @@ export default function LightModal({
   const serviceTimersRef = useRef(new Map());
   const subSettleTimersRef = useRef(new Map());
   const brightnessSettleTimerRef = useRef(null);
+  const pendingBrightnessRef = useRef(null);
   const localSubBrightnessRef = useRef(localSubBrightness);
 
   const scheduleLightService = (entityId, payload, onCommit) => {
@@ -213,6 +213,7 @@ export default function LightModal({
       subSettleTimersRef.current.forEach((timer) => clearTimeout(timer));
       subSettleTimersRef.current.clear();
       if (brightnessSettleTimerRef.current) clearTimeout(brightnessSettleTimerRef.current);
+      pendingBrightnessRef.current = null;
     };
   }, []);
 
@@ -232,9 +233,17 @@ export default function LightModal({
       !brightnessSettleTimerRef.current &&
       subSettleTimersRef.current.size === 0
     ) {
-      setLocalBrightness(optimisticLightBrightness[activeLightId] ?? remoteBrightness);
+      const pending = pendingBrightnessRef.current;
+      if (pending !== null) {
+        if (Math.abs(remoteBrightness - pending) <= 2) {
+          pendingBrightnessRef.current = null;
+          setLocalBrightness(remoteBrightness);
+        }
+        return;
+      }
+      setLocalBrightness(remoteBrightness);
     }
-  }, [activeLightId, optimisticLightBrightness, remoteBrightness, show]);
+  }, [activeLightId, remoteBrightness, show]);
 
   useEffect(() => {
     if (!show || isDraggingRef.current) return;
@@ -244,10 +253,10 @@ export default function LightModal({
       nextValues[entityId] =
         subSettleTimersRef.current.has(entityId) && localValue !== undefined
           ? localValue
-          : optimisticLightBrightness[entityId] ?? entities[entityId]?.attributes?.brightness ?? 0;
+          : getEntityBrightnessValue(entities[entityId]);
     });
     setLocalSubBrightness(nextValues);
-  }, [entities, groupedEntityIdsKey, optimisticLightBrightness, show]);
+  }, [entities, groupedEntityIdsKey, show]);
 
   // Sync remote -> local when NOT dragging
   useEffect(() => {
@@ -280,6 +289,7 @@ export default function LightModal({
   const handleBrightnessChange = (e) => {
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
+    pendingBrightnessRef.current = val;
     setLocalBrightness(val);
     if (brightnessSettleTimerRef.current) clearTimeout(brightnessSettleTimerRef.current);
 
@@ -333,9 +343,7 @@ export default function LightModal({
   };
 
   const getSubBrightnessValue = (entityId, localValues = localSubBrightnessRef.current) =>
-    localValues[entityId] ??
-    optimisticLightBrightness[entityId] ??
-    getEntityBrightnessValue(entities[entityId]);
+    localValues[entityId] ?? getEntityBrightnessValue(entities[entityId]);
 
   const updateLocalGroupBrightness = (localValues = localSubBrightnessRef.current) => {
     if (groupedEntityIds.length === 0) return;
@@ -701,9 +709,7 @@ export default function LightModal({
                       const subIsOn = subEnt?.state === 'on';
                       const subUnavail = subEnt?.state === 'unavailable';
                       const subBrightness =
-                        localSubBrightness[cid] ??
-                        optimisticLightBrightness[cid] ??
-                        getEntityBrightnessValue(subEnt);
+                        localSubBrightness[cid] ?? getEntityBrightnessValue(subEnt);
                       const subVisualIsOn = subBrightness > 0 || subIsOn;
 
                       return (

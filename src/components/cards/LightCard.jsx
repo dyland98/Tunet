@@ -3,8 +3,6 @@ import { getIconComponent } from '../../icons';
 import { Lightbulb, Thermometer, Droplets } from '../../icons';
 import M3Slider from '../ui/M3Slider';
 
-const LIGHT_TRANSITION_SETTLE_MS = 1800;
-
 const getEntityBrightnessValue = (entity, fallback = 0) => {
   if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return fallback;
   if (entity.state !== 'on') return 0;
@@ -42,15 +40,15 @@ const LightCard = ({
   const remoteBrightness = hasSubEntities
     ? Math.round(
         subEntities.reduce((sum, entityId) => {
-          return (
-            sum +
-            (optimisticLightBrightness[entityId] ?? getEntityBrightnessValue(entities[entityId]))
-          );
+          return sum + getEntityBrightnessValue(entities[entityId]);
         }, 0) / subEntities.length
       )
-    : (optimisticLightBrightness[cardId] ??
-      getEntityBrightnessValue(entity, getA(cardId, 'brightness') || 0));
+    : (entity?.state === 'on'
+      ? (optimisticLightBrightness[cardId] ??
+        getEntityBrightnessValue(entity, getA(cardId, 'brightness') || 0))
+      : 0);
   const [localBrightness, setLocalBrightness] = useState(null);
+  const pendingBrightnessRef = useRef(null);
   const displayBrightness = localBrightness ?? remoteBrightness;
   const activeCount = subEntities.filter((id) => entities[id]?.state === 'on').length;
   const totalCount = subEntities.length;
@@ -76,27 +74,29 @@ const LightCard = ({
   const humidityValue = humidityEntity && humidityEntity.state !== 'unavailable' ? humidityEntity.state : null;
   const humidityUnit = humidityEntity?.attributes?.unit_of_measurement || '%';
 
-  const localResetRef = useRef(null);
-  useEffect(
-    () => () => {
-      clearTimeout(localResetRef.current);
-    },
-    []
-  );
   useEffect(() => {
     setLocalBrightness(null);
+    pendingBrightnessRef.current = null;
   }, [cardId]);
+
+  useEffect(() => {
+    const pending = pendingBrightnessRef.current;
+    if (pending === null) return;
+    if (Math.abs(remoteBrightness - pending) <= 2) {
+      pendingBrightnessRef.current = null;
+      setLocalBrightness(null);
+    }
+  }, [remoteBrightness]);
 
   const handleBrightnessChange = useCallback(
     (e) => {
       const val = parseInt(e.target.value, 10);
+      pendingBrightnessRef.current = val;
       setLocalBrightness(val);
-      clearTimeout(localResetRef.current);
       const targetEntityIds = hasSubEntities ? subEntities : [cardId];
       targetEntityIds.forEach((entityId) => {
         callService('light', 'turn_on', { entity_id: entityId, brightness: val });
       });
-      localResetRef.current = setTimeout(() => setLocalBrightness(null), LIGHT_TRANSITION_SETTLE_MS);
     },
     [cardId, callService, hasSubEntities, subEntities]
   );
@@ -109,7 +109,7 @@ const LightCard = ({
     (event) => {
       event.stopPropagation();
       if (isUnavailable) return;
-      clearTimeout(localResetRef.current);
+      pendingBrightnessRef.current = null;
       setLocalBrightness(null);
       callService('light', 'toggle', { entity_id: cardId });
     },
