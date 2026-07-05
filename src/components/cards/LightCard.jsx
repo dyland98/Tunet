@@ -5,6 +5,12 @@ import M3Slider from '../ui/M3Slider';
 
 const LIGHT_TRANSITION_SETTLE_MS = 1800;
 
+const getEntityBrightnessValue = (entity, fallback = 0) => {
+  if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return fallback;
+  if (entity.state !== 'on') return 0;
+  return entity.attributes?.brightness ?? 255;
+};
+
 /** @param {any} props */
 const LightCard = ({
   cardId,
@@ -31,10 +37,21 @@ const LightCard = ({
   const state = entity?.state;
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
   const isOn = state === 'on';
-  const br = getA(cardId, 'brightness') || 0;
-  const [localBrightness, setLocalBrightness] = useState(null);
-  const displayBrightness = localBrightness ?? optimisticLightBrightness[cardId] ?? br;
   const subEntities = getA(cardId, 'entity_id', []);
+  const hasSubEntities = subEntities.length > 0;
+  const remoteBrightness = hasSubEntities
+    ? Math.round(
+        subEntities.reduce((sum, entityId) => {
+          return (
+            sum +
+            (optimisticLightBrightness[entityId] ?? getEntityBrightnessValue(entities[entityId]))
+          );
+        }, 0) / subEntities.length
+      )
+    : (optimisticLightBrightness[cardId] ??
+      getEntityBrightnessValue(entity, getA(cardId, 'brightness') || 0));
+  const [localBrightness, setLocalBrightness] = useState(null);
+  const displayBrightness = localBrightness ?? remoteBrightness;
   const activeCount = subEntities.filter((id) => entities[id]?.state === 'on').length;
   const totalCount = subEntities.length;
   const name = customNames[cardId] || getA(cardId, 'friendly_name');
@@ -75,10 +92,13 @@ const LightCard = ({
       const val = parseInt(e.target.value, 10);
       setLocalBrightness(val);
       clearTimeout(localResetRef.current);
-      callService('light', 'turn_on', { entity_id: cardId, brightness: val });
+      const targetEntityIds = hasSubEntities ? subEntities : [cardId];
+      targetEntityIds.forEach((entityId) => {
+        callService('light', 'turn_on', { entity_id: entityId, brightness: val });
+      });
       localResetRef.current = setTimeout(() => setLocalBrightness(null), LIGHT_TRANSITION_SETTLE_MS);
     },
-    [cardId, callService]
+    [cardId, callService, hasSubEntities, subEntities]
   );
 
   const handleToggleLight = useCallback(
