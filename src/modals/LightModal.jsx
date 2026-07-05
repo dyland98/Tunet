@@ -17,10 +17,17 @@ import { getIconComponent } from '../icons';
 const LIGHT_SERVICE_DEBOUNCE_MS = 260;
 const LIGHT_TRANSITION_SETTLE_MS = 1800;
 
+const getEntityBrightnessValue = (entity, fallback = 0) => {
+  if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return fallback;
+  if (entity.state !== 'on') return 0;
+  return entity.attributes?.brightness ?? 255;
+};
+
 function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel, onCommit }) {
   const [localValue, setLocalValue] = useState(value);
   const isInteractingRef = useRef(false);
   const pendingValueRef = useRef(value);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (!isInteractingRef.current) {
@@ -32,7 +39,25 @@ function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel,
   const commitValue = () => {
     if (!isInteractingRef.current) return;
     isInteractingRef.current = false;
-    onCommit(entityId, pendingValueRef.current);
+    const inputValue =
+      inputRef.current instanceof HTMLInputElement
+        ? parseInt(inputRef.current.value, 10)
+        : pendingValueRef.current;
+    pendingValueRef.current = inputValue;
+    setLocalValue(inputValue);
+    onCommit(entityId, inputValue);
+  };
+
+  const beginInteraction = (event) => {
+    isInteractingRef.current = true;
+    event.currentTarget?.setPointerCapture?.(event.pointerId);
+  };
+
+  const handleValueInput = (event) => {
+    const nextValue = parseInt(event.target.value, 10);
+    pendingValueRef.current = nextValue;
+    setLocalValue(nextValue);
+    if (!isInteractingRef.current) onCommit(entityId, nextValue);
   };
 
   return (
@@ -42,6 +67,7 @@ function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel,
         style={{ width: `${(localValue / 255) * 100}%` }}
       />
       <input
+        ref={inputRef}
         type="range"
         min="0"
         max="255"
@@ -49,14 +75,10 @@ function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel,
         value={localValue}
         aria-label={ariaLabel}
         disabled={disabled}
-        onPointerDown={() => {
-          isInteractingRef.current = true;
-        }}
+        onPointerDown={beginInteraction}
         onPointerUp={commitValue}
         onPointerCancel={() => {
-          isInteractingRef.current = false;
-          pendingValueRef.current = value;
-          setLocalValue(value);
+          commitValue();
         }}
         onTouchStart={() => {
           isInteractingRef.current = true;
@@ -66,16 +88,13 @@ function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel,
           isInteractingRef.current = true;
         }}
         onMouseUp={commitValue}
-        onChange={(event) => {
-          const nextValue = parseInt(event.target.value, 10);
-          pendingValueRef.current = nextValue;
-          setLocalValue(nextValue);
-          if (!isInteractingRef.current) onCommit(entityId, nextValue);
-        }}
+        onInput={handleValueInput}
+        onChange={handleValueInput}
         onBlur={() => {
           if (isInteractingRef.current) commitValue();
         }}
         className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+        style={{ touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
       />
     </div>
   );
@@ -89,7 +108,6 @@ export default function LightModal({
   callService,
   getA,
   optimisticLightBrightness,
-  setOptimisticLightBrightness,
   customIcons,
   t,
 }) {
@@ -140,7 +158,16 @@ export default function LightModal({
       ? Math.round(1000000 / entity.attributes.color_temp)
       : Math.round((minKelvin + maxKelvin) / 2));
   const remoteHue = entity?.attributes?.hs_color?.[0] ?? 0;
-  const remoteBrightness = getA(activeLightId, 'brightness') || 0;
+  const remoteGroupBrightness =
+    groupedEntityIds.length > 0
+      ? Math.round(
+          groupedEntityIds.reduce((sum, entityId) => {
+            return sum + getEntityBrightnessValue(entities[entityId]);
+          }, 0) / groupedEntityIds.length
+        )
+      : null;
+  const remoteBrightness =
+    remoteGroupBrightness ?? getEntityBrightnessValue(entity, getA(activeLightId, 'brightness') || 0);
 
   // --- Local State for Optimistic UI ---
   const [activeTab, setActiveTab] = useState('brightness');
@@ -150,22 +177,9 @@ export default function LightModal({
   const [localSubBrightness, setLocalSubBrightness] = useState({});
   const isDraggingRef = useRef(false);
   const serviceTimersRef = useRef(new Map());
-  const optimisticFrameRef = useRef(null);
-  const pendingOptimisticRef = useRef({});
   const subSettleTimersRef = useRef(new Map());
+  const brightnessSettleTimerRef = useRef(null);
   const localSubBrightnessRef = useRef(localSubBrightness);
-
-  const publishOptimisticBrightness = (entityId, value) => {
-    pendingOptimisticRef.current[entityId] = value;
-    if (optimisticFrameRef.current) return;
-
-    optimisticFrameRef.current = requestAnimationFrame(() => {
-      optimisticFrameRef.current = null;
-      const pending = pendingOptimisticRef.current;
-      pendingOptimisticRef.current = {};
-      setOptimisticLightBrightness((prev) => ({ ...prev, ...pending }));
-    });
-  };
 
   const scheduleLightService = (entityId, payload, onCommit) => {
     const currentTimer = serviceTimersRef.current.get(entityId);
@@ -182,9 +196,9 @@ export default function LightModal({
     return () => {
       serviceTimersRef.current.forEach((timer) => clearTimeout(timer));
       serviceTimersRef.current.clear();
-      if (optimisticFrameRef.current) cancelAnimationFrame(optimisticFrameRef.current);
       subSettleTimersRef.current.forEach((timer) => clearTimeout(timer));
       subSettleTimersRef.current.clear();
+      if (brightnessSettleTimerRef.current) clearTimeout(brightnessSettleTimerRef.current);
     };
   }, []);
 
@@ -198,7 +212,7 @@ export default function LightModal({
   }, [show]);
 
   useEffect(() => {
-    if (show && !isDraggingRef.current) {
+    if (show && !isDraggingRef.current && !brightnessSettleTimerRef.current) {
       setLocalBrightness(optimisticLightBrightness[activeLightId] ?? remoteBrightness);
     }
   }, [activeLightId, optimisticLightBrightness, remoteBrightness, show]);
@@ -248,8 +262,50 @@ export default function LightModal({
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalBrightness(val);
-    publishOptimisticBrightness(activeLightId, val);
-    scheduleLightService(activeLightId, { brightness: val });
+    if (brightnessSettleTimerRef.current) clearTimeout(brightnessSettleTimerRef.current);
+
+    const targetEntityIds = groupedEntityIds.length > 0 ? groupedEntityIds : [activeLightId];
+    if (groupedEntityIds.length > 0) {
+      const nextLocalValues = { ...localSubBrightnessRef.current };
+      targetEntityIds.forEach((entityId) => {
+        nextLocalValues[entityId] = val;
+      });
+      localSubBrightnessRef.current = nextLocalValues;
+      setLocalSubBrightness((prev) => {
+        const next = { ...prev };
+        targetEntityIds.forEach((entityId) => {
+          next[entityId] = val;
+          const currentTimer = subSettleTimersRef.current.get(entityId);
+          if (currentTimer) clearTimeout(currentTimer);
+        });
+        return next;
+      });
+    }
+
+    targetEntityIds.forEach((entityId) => {
+      callService('light', 'turn_on', { entity_id: entityId, brightness: val });
+    });
+
+    brightnessSettleTimerRef.current = setTimeout(() => {
+      brightnessSettleTimerRef.current = null;
+    }, LIGHT_TRANSITION_SETTLE_MS);
+
+    if (groupedEntityIds.length > 0) {
+      targetEntityIds.forEach((entityId) => {
+        const timer = setTimeout(() => {
+          subSettleTimersRef.current.delete(entityId);
+          const nextLocalValues = { ...localSubBrightnessRef.current };
+          delete nextLocalValues[entityId];
+          localSubBrightnessRef.current = nextLocalValues;
+          setLocalSubBrightness((prev) => {
+            const next = { ...prev };
+            delete next[entityId];
+            return next;
+          });
+        }, LIGHT_TRANSITION_SETTLE_MS);
+        subSettleTimersRef.current.set(entityId, timer);
+      });
+    }
   };
 
   const handleSubBrightnessCommit = (entityId, value) => {
@@ -460,6 +516,7 @@ export default function LightModal({
                           ariaLabel={t('light.brightness')}
                           colorClass="bg-amber-500"
                           variant="fat" // Keep fat for touch, but in smaller container
+                          commitOnly
                         />
                       </div>
                     </div>

@@ -26,6 +26,7 @@ export default function M3Slider({
   const [internalValue, setInternalValue] = useState(value);
   const [isInteracting, setIsInteracting] = useState(false);
   const isInteractingRef = useRef(false);
+  const inputRef = useRef(null);
   const timeoutRef = useRef(null);
   const frameRef = useRef(null);
   const pendingValueRef = useRef(value);
@@ -60,6 +61,12 @@ export default function M3Slider({
   const endInteraction = () => {
     if (!isInteractingRef.current) return;
     isInteractingRef.current = false;
+    const inputValue =
+      inputRef.current instanceof HTMLInputElement
+        ? parseFloat(inputRef.current.value)
+        : pendingValueRef.current;
+    pendingValueRef.current = inputValue;
+    setInternalValue(inputValue);
     if (commitOnly && pendingValueRef.current !== committedValueRef.current) {
       committedValueRef.current = pendingValueRef.current;
       onChange({ target: { value: String(pendingValueRef.current) } });
@@ -103,9 +110,10 @@ export default function M3Slider({
     onMouseUp: endInteraction,
     onTouchStart: beginInteraction,
     onTouchEnd: endInteraction,
+    onInput: handleInputChange,
     onChange: handleInputChange,
     className: 'absolute w-full h-full opacity-0 cursor-pointer z-20 select-none',
-    style: { touchAction: 'pan-x', WebkitTapHighlightColor: 'transparent' },
+    style: { touchAction: commitOnly ? 'none' : 'pan-x', WebkitTapHighlightColor: 'transparent' },
   };
 
   if (variant === 'thin') {
@@ -121,7 +129,7 @@ export default function M3Slider({
             style={{ width: `${percentage}%` }}
           />
         </div>
-        <input {...commonInputProps} />
+        <input ref={inputRef} {...commonInputProps} />
         <div
           className={`pointer-events-none absolute z-10 h-3 w-3 rounded-full bg-white shadow-lg group-hover:opacity-100 ${isInteracting ? 'opacity-100 transition-none' : 'opacity-0 transition-opacity duration-200'}`}
           style={{ left: `calc(${percentage}% - 6px)` }}
@@ -143,7 +151,7 @@ export default function M3Slider({
             style={{ width: `${percentage}%` }}
           />
         </div>
-        <input {...commonInputProps} />
+        <input ref={inputRef} {...commonInputProps} />
         <div
           className={`pointer-events-none absolute z-10 h-4 w-4 rounded-full bg-white shadow-lg group-hover:opacity-100 ${isInteracting ? 'opacity-100 transition-none' : 'opacity-0 transition-opacity duration-200'}`}
           style={{ left: `calc(${percentage}% - 8px)` }}
@@ -166,6 +174,7 @@ export default function M3Slider({
           />
         </div>
         <input
+          ref={inputRef}
           {...commonInputProps}
           className="absolute z-10 h-full w-full cursor-pointer opacity-0"
         />
@@ -209,7 +218,7 @@ export default function M3Slider({
         </div>
       )}
 
-      <input {...commonInputProps} />
+      <input ref={inputRef} {...commonInputProps} />
 
       {/* Thumb (Optional / Custom) */}
       {thumbClass ? (
