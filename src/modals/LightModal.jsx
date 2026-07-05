@@ -32,12 +32,6 @@ function RoomLightBrightnessSlider({ entityId, value, isOn, disabled, ariaLabel,
 
   useEffect(() => {
     if (!isInteractingRef.current) {
-      if (
-        committedValueRef.current === pendingValueRef.current &&
-        value !== pendingValueRef.current
-      ) {
-        return;
-      }
       pendingValueRef.current = value;
       committedValueRef.current = value;
       setLocalValue(value);
@@ -699,6 +693,7 @@ export default function LightModal({
                         localSubBrightness[cid] ??
                         optimisticLightBrightness[cid] ??
                         getEntityBrightnessValue(subEnt);
+                      const subVisualIsOn = subBrightness > 0 || subIsOn;
 
                       return (
                         <div key={cid} className="flex items-end gap-3">
@@ -711,7 +706,7 @@ export default function LightModal({
                             <RoomLightBrightnessSlider
                               entityId={cid}
                               value={subBrightness}
-                              isOn={subIsOn}
+                              isOn={subVisualIsOn}
                               disabled={subUnavail}
                               ariaLabel={`${subName} ${t('light.brightness')}`}
                               onCommit={handleSubBrightnessCommit}
@@ -722,10 +717,10 @@ export default function LightModal({
                           <button
                             onClick={() => handleSubToggle(cid)}
                             aria-label={`${subName} ${t('common.toggle')}`}
-                            className={`flex h-8 w-12 items-center justify-center rounded-xl border transition-all ${subIsOn ? 'border-amber-500/30 bg-amber-500/20 text-amber-400' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+                            className={`flex h-8 w-12 items-center justify-center rounded-xl border transition-all ${subVisualIsOn ? 'border-amber-500/30 bg-amber-500/20 text-amber-400' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
                           >
                             <div
-                              className={`h-2 w-2 rounded-full transition-all ${subIsOn ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'bg-[var(--text-secondary)] opacity-50'}`}
+                              className={`h-2 w-2 rounded-full transition-all ${subVisualIsOn ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'bg-[var(--text-secondary)] opacity-50'}`}
                             />
                           </button>
                         </div>
